@@ -1,0 +1,6 @@
+{
+  "name": "DeutschStart - Học Tiếng Đức A0-A2",
+  "description": "Ứng dụng học tiếng Đức toàn diện từ con số 0 cho người Việt: Lộ trình A0-A2, từ vựng Spaced Repetition, ngữ pháp dễ hiểu, luyện phát âm, đàm thoại AI và sổ tay lỗi sai.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
