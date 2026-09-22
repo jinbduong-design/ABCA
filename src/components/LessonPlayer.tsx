@@ -132,8 +132,10 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
     setIsAnswerSubmitted(true);
 
     if (correct) {
+      speechService.playSuccessSound();
       if (currentStep === 5) setTestScore((prev) => prev + 1);
     } else {
+      speechService.playErrorSound();
       // Save mistake to Mistakes Log
       const userWrong = selectedOption || fillBlankInput || reorderSelectedWords.join(' ') || 'Sai';
       storageService.saveMistake({
@@ -161,6 +163,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
         // From Mini Test to Completion
         storageService.completeLesson(lesson.id, testScore);
         storageService.addStudyTime(lesson.estimatedMinutes || 15);
+        speechService.playLevelUpSound();
         setCurrentStep(6);
       }
     }

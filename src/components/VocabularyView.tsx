@@ -13,16 +13,36 @@ import {
   ChevronLeft, 
   ChevronRight,
   Eye,
-  StickyNote
+  StickyNote,
+  ArrowLeftRight,
+  HelpCircle
 } from 'lucide-react';
 import { VOCABULARY_LIST } from '../data/vocabularyData';
 import { VocabularyItem, FlashcardItem } from '../types';
 import { speechService } from '../services/speechService';
 import { storageService } from '../services/storageService';
+import { PhoneticsGuideModal } from './PhoneticsGuideModal';
+import { AdjektivAndPrepositionMatrixModal } from './AdjektivAndPrepositionMatrixModal';
 
 interface VocabularyViewProps {
   onOpenNotes?: (targetId: string, defaultTitle: string) => void;
 }
+
+const VOCAB_TOPICS = [
+  { id: 'all', label: 'Tất cả chủ đề' },
+  { id: 'alphabet_numbers', label: 'Bảng chữ cái & Số đếm' },
+  { id: 'greetings_intro', label: 'Chào hỏi & Giới thiệu' },
+  { id: 'family', label: 'Gia đình' },
+  { id: 'food_drinks', label: 'Đồ ăn & Thức uống' },
+  { id: 'shopping', label: 'Mua sắm & Giá cả' },
+  { id: 'home_furniture', label: 'Nhà cửa & Đồ đạc' },
+  { id: 'daily_routine', label: 'Sinh hoạt hàng ngày' },
+  { id: 'hobbies_free_time', label: 'Sở thích & Giải trí' },
+  { id: 'transport_travel', label: 'Giao thông & Đi lại' },
+  { id: 'health_body', label: 'Sức khỏe & Cơ thể' },
+  { id: 'work_school', label: 'Công việc & Trường học' },
+  { id: 'weather_seasons', label: 'Thời tiết & 4 Mùa' },
+];
 
 export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) => {
   const [activeTab, setActiveTab] = useState<'flashcards' | 'list'>('flashcards');
@@ -33,15 +53,20 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [onlyDueForReview, setOnlyDueForReview] = useState(false);
 
+  // Flashcard Direction: 'de_to_vn' (Thuận: Đức -> Việt) vs 'vn_to_de' (Active Recall: Việt -> Đức + der/die/das)
+  const [cardDirection, setCardDirection] = useState<'de_to_vn' | 'vn_to_de'>('de_to_vn');
+
   // Flashcard State
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [srsCards, setSrsCards] = useState<{ [id: string]: FlashcardItem }>({});
 
-  // Word Detail Modal
+  // Modals state
   const [selectedWord, setSelectedWord] = useState<VocabularyItem | null>(null);
+  const [isPhoneticsOpen, setIsPhoneticsOpen] = useState(false);
+  const [isMatrixOpen, setIsMatrixOpen] = useState(false);
 
-  // Favorites in state
+  // Favorites
   const [favorites, setFavorites] = useState<string[]>([]);
 
   // Load SRS cards and favorites on mount
@@ -93,7 +118,7 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
       if (selectedArticle !== 'all' && v.article !== selectedArticle) return false;
 
       // Topic
-      if (selectedTopic !== 'all' && (v.topic || v.topicId) !== selectedTopic) return false;
+      if (selectedTopic !== 'all' && v.topicId !== selectedTopic && v.topic !== selectedTopic) return false;
 
       // Favorites
       if (onlyFavorites && !favorites.includes(v.id)) return false;
@@ -124,6 +149,11 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
     if (!activeCard) return;
 
     storageService.updateFlashcardReview(activeCard.id, rating);
+    if (rating >= 3) {
+      speechService.playSuccessSound();
+    } else {
+      speechService.playErrorSound();
+    }
 
     // Refresh state
     const cards = storageService.getFlashcards();
@@ -185,6 +215,45 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
         </div>
       </div>
 
+      {/* Quick Tool Banners */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          onClick={() => setIsPhoneticsOpen(true)}
+          className="p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20 border border-amber-200 rounded-2xl flex items-center justify-between text-left transition-all group"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🗣️</span>
+            <div>
+              <p className="text-xs font-bold text-slate-900 group-hover:text-amber-700">
+                Cẩm Nang Khẩu Hình & Phát Âm Chuẩn
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Làm chủ âm ch, r, ö, ü, ä, ß, sp, st cho người Việt
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-amber-700">Xem ngay →</span>
+        </button>
+
+        <button
+          onClick={() => setIsMatrixOpen(true)}
+          className="p-3.5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 hover:from-blue-500/20 hover:to-indigo-500/20 border border-blue-200 rounded-2xl flex items-center justify-between text-left transition-all group"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">📐</span>
+            <div>
+              <p className="text-xs font-bold text-slate-900 group-hover:text-blue-700">
+                Ma Trận Giới Từ 2 Cách & Đuôi Tính Từ
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Bảng 4 cách (Kasus), Wechselpräpositionen & Adjektiv
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-blue-700">Tra cứu →</span>
+        </button>
+      </div>
+
       {/* Filter Bar */}
       <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
         {/* Search Input */}
@@ -202,7 +271,7 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
           />
         </div>
 
-        {/* Chips Filters */}
+        {/* Filters Grid */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
           {/* Level Filter */}
           <select
@@ -211,12 +280,28 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
               setSelectedLevel(e.target.value);
               setCurrentCardIdx(0);
             }}
-            className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-semibold text-slate-700 outline-none"
+            className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-semibold text-slate-700 outline-none shrink-0"
           >
             <option value="all">Mọi trình độ (A0-A2)</option>
             <option value="A0">Cấp độ A0</option>
             <option value="A1">Cấp độ A1</option>
             <option value="A2">Cấp độ A2</option>
+          </select>
+
+          {/* Topic Filter */}
+          <select
+            value={selectedTopic}
+            onChange={(e) => {
+              setSelectedTopic(e.target.value);
+              setCurrentCardIdx(0);
+            }}
+            className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-semibold text-slate-700 outline-none shrink-0"
+          >
+            {VOCAB_TOPICS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
           </select>
 
           {/* Article Filter */}
@@ -226,7 +311,7 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
               setSelectedArticle(e.target.value);
               setCurrentCardIdx(0);
             }}
-            className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-semibold text-slate-700 outline-none"
+            className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-semibold text-slate-700 outline-none shrink-0"
           >
             <option value="all">Mọi quán từ</option>
             <option value="der">🟦 der (Đực)</option>
@@ -274,6 +359,42 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
       {/* ======================================================================= */}
       {activeTab === 'flashcards' && (
         <div className="space-y-6">
+          {/* Active Recall Direction Switcher */}
+          <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 text-xs">
+            <span className="font-bold text-slate-700 flex items-center gap-1.5">
+              <ArrowLeftRight className="w-4 h-4 text-amber-600" />
+              Chế độ lật thẻ:
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setCardDirection('de_to_vn');
+                  setIsCardFlipped(false);
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                  cardDirection === 'de_to_vn'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                🇩🇪 Đức ➔ 🇻🇳 Việt
+              </button>
+              <button
+                onClick={() => {
+                  setCardDirection('vn_to_de');
+                  setIsCardFlipped(false);
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                  cardDirection === 'vn_to_de'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                ⚡ 🇻🇳 Việt ➔ 🇩🇪 Đức (Active Recall)
+              </button>
+            </div>
+          </div>
+
           {filteredVocab.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 text-slate-400 space-y-2">
               <Sparkles className="w-8 h-8 mx-auto text-amber-400" />
@@ -311,64 +432,116 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
                 onClick={() => setIsCardFlipped((p) => !p)}
                 className="w-full min-h-[320px] bg-white rounded-3xl border-2 border-slate-200 hover:border-amber-400/80 shadow-md hover:shadow-xl transition-all cursor-pointer p-8 flex flex-col justify-between text-center relative overflow-hidden group select-none"
               >
-                {/* Article Badge Accent */}
-                {activeCard.article && activeCard.article !== 'none' && (
-                  <div className="flex justify-center">
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full font-black uppercase tracking-wider ${
-                        activeCard.article === 'der'
-                          ? 'bg-blue-600 text-white'
-                          : activeCard.article === 'die'
-                          ? 'bg-red-600 text-white'
-                          : 'bg-emerald-600 text-white'
-                      }`}
-                    >
-                      {activeCard.article === 'der'
-                        ? 'der (Giống Đực)'
-                        : activeCard.article === 'die'
-                        ? 'die (Giống Cái)'
-                        : 'das (Giống Trung)'}
-                    </span>
-                  </div>
-                )}
+                {/* MODE 1: DE TO VN */}
+                {cardDirection === 'de_to_vn' ? (
+                  <>
+                    {/* Article Badge Accent on Front */}
+                    {activeCard.article && activeCard.article !== 'none' && (
+                      <div className="flex justify-center">
+                        <span
+                          className={`text-xs px-3 py-1 rounded-full font-black uppercase tracking-wider ${
+                            activeCard.article === 'der'
+                              ? 'bg-blue-600 text-white'
+                              : activeCard.article === 'die'
+                              ? 'bg-red-600 text-white'
+                              : 'bg-emerald-600 text-white'
+                          }`}
+                        >
+                          {activeCard.article === 'der'
+                            ? 'der (Giống Đực)'
+                            : activeCard.article === 'die'
+                            ? 'die (Giống Cái)'
+                            : 'das (Giống Trung)'}
+                        </span>
+                      </div>
+                    )}
 
-                {/* Card Content - Front or Back */}
-                <div className="my-auto space-y-3">
-                  {!isCardFlipped ? (
-                    /* FRONT OF CARD */
-                    <div className="space-y-2">
-                      <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                        {activeCard.german}
-                      </h2>
-                      <p className="text-sm font-mono text-amber-700 bg-amber-50 px-3 py-1 rounded-full inline-block">
-                        {activeCard.pronunciation}
-                      </p>
-                      {activeCard.plural && (
-                        <p className="text-xs text-slate-400">Plural: {activeCard.plural}</p>
-                      )}
-                      <p className="text-xs text-slate-400 pt-4 flex items-center justify-center gap-1">
-                        <Eye className="w-3.5 h-3.5" /> Bấm vào thẻ để lật xem nghĩa tiếng Việt
-                      </p>
-                    </div>
-                  ) : (
-                    /* BACK OF CARD */
-                    <div className="space-y-3 animate-fadeIn">
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900">
-                        {activeCard.vietnamese}
-                      </p>
-                      <p className="text-xs text-slate-400">({activeCard.english})</p>
-
-                      {activeCard.exampleSentence && (
-                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1 text-left max-w-md mx-auto">
-                          <p className="font-bold text-slate-800">
-                            💬 {activeCard.exampleSentence}
+                    <div className="my-auto space-y-3">
+                      {!isCardFlipped ? (
+                        <div className="space-y-2">
+                          <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+                            {activeCard.german}
+                          </h2>
+                          <p className="text-sm font-mono text-amber-700 bg-amber-50 px-3 py-1 rounded-full inline-block">
+                            {activeCard.pronunciation}
                           </p>
-                          <p className="text-slate-500">{activeCard.exampleTranslation}</p>
+                          {activeCard.plural && (
+                            <p className="text-xs text-slate-400">Plural: {activeCard.plural}</p>
+                          )}
+                          <p className="text-xs text-slate-400 pt-4 flex items-center justify-center gap-1">
+                            <Eye className="w-3.5 h-3.5" /> Bấm vào thẻ để lật xem nghĩa tiếng Việt
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 animate-fadeIn">
+                          <p className="text-2xl sm:text-3xl font-black text-slate-900">
+                            {activeCard.vietnamese}
+                          </p>
+                          <p className="text-xs text-slate-400">({activeCard.english})</p>
+
+                          {activeCard.exampleSentence && (
+                            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1 text-left max-w-md mx-auto">
+                              <p className="font-bold text-slate-800">
+                                💬 {activeCard.exampleSentence}
+                              </p>
+                              <p className="text-slate-500">{activeCard.exampleTranslation}</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </>
+                ) : (
+                  /* MODE 2: VN TO DE (ACTIVE RECALL) */
+                  <>
+                    <div className="flex justify-center">
+                      <span className="text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider bg-amber-100 text-amber-800">
+                        ⚡ Hãy tự nhớ lại quán từ (der/die/das) & từ tiếng Đức!
+                      </span>
+                    </div>
+
+                    <div className="my-auto space-y-3">
+                      {!isCardFlipped ? (
+                        <div className="space-y-2">
+                          <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
+                            {activeCard.vietnamese}
+                          </h2>
+                          <p className="text-xs text-slate-400">({activeCard.english})</p>
+                          <p className="text-xs text-amber-700 font-semibold pt-4 flex items-center justify-center gap-1">
+                            <Eye className="w-3.5 h-3.5" /> Bấm để lật xem câu trả lời tiếng Đức chuẩn
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 animate-fadeIn">
+                          {activeCard.article && activeCard.article !== 'none' && (
+                            <div className="flex justify-center">
+                              <span
+                                className={`text-xs px-3 py-1 rounded-full font-black uppercase ${
+                                  activeCard.article === 'der'
+                                    ? 'bg-blue-600 text-white'
+                                    : activeCard.article === 'die'
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-emerald-600 text-white'
+                                }`}
+                              >
+                                {activeCard.article}
+                              </span>
+                            </div>
+                          )}
+                          <h2 className="text-4xl sm:text-5xl font-black text-slate-900">
+                            {activeCard.german}
+                          </h2>
+                          <p className="text-sm font-mono text-amber-700 bg-amber-50 px-3 py-1 rounded-full inline-block">
+                            {activeCard.pronunciation}
+                          </p>
+                          {activeCard.plural && (
+                            <p className="text-xs text-slate-500 font-bold">Số nhiều: {activeCard.plural}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {/* Audio Button */}
                 <div className="flex items-center justify-center gap-3 pt-2">
@@ -641,6 +814,18 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
           </div>
         </div>
       )}
+
+      {/* Phonetics Guide Modal */}
+      <PhoneticsGuideModal
+        isOpen={isPhoneticsOpen}
+        onClose={() => setIsPhoneticsOpen(false)}
+      />
+
+      {/* Adjektiv & Prepositions Matrix Modal */}
+      <AdjektivAndPrepositionMatrixModal
+        isOpen={isMatrixOpen}
+        onClose={() => setIsMatrixOpen(false)}
+      />
     </div>
   );
 };

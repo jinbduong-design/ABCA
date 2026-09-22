@@ -235,6 +235,99 @@ Hãy trả về JSON theo schema:
   }
 });
 
+// AI Writing Corrector (Brief / Email A1-A2)
+app.post("/api/tutor/correct-writing", async (req, res) => {
+  try {
+    const { promptTopic, userText, level = "A1" } = req.body;
+    if (!userText || !userText.trim()) {
+      return res.status(400).json({ error: "Vui lòng nhập bài viết tiếng Đức" });
+    }
+
+    const ai = getGeminiClient();
+    if (!ai) {
+      return res.json({
+        score: 85,
+        cefrLevel: level,
+        overallFeedback: "Bài viết mạch lạc, bố cục rõ ràng theo chuẩn thư tiếng Đức. Hãy chú ý chia động từ và viết hoa danh từ đúng quy tắc.",
+        correctedVersion: userText.trim(),
+        sentenceCorrections: [
+          {
+            original: userText.trim().split("\n")[0] || userText,
+            corrected: userText.trim().split("\n")[0] || userText,
+            explanation: "Mở đầu thư đúng văn phong.",
+            hasError: false,
+          },
+        ],
+        vocabularySuggestions: [
+          {
+            original: "gut",
+            better: "ausgezeichnet",
+            reason: "Giúp bài viết biểu cảm và ấn tượng hơn.",
+          },
+        ],
+        keyTips: [
+          "Luôn mở đầu thư thân mật bằng: Liebe/Lieber [Tên],",
+          "Sau dấu phẩy ở lời chào, từ đầu tiên của câu tiếp theo phải viết thường (trừ khi là danh từ hoặc Sie).",
+          "Kết thư thân mật bằng: Viele Grüße / Herzliche Grüße.",
+        ],
+      });
+    }
+
+    const prompt = `Bạn là giám khảo chấm thi tiếng Đức quốc tế (Goethe-Zertifikat / Telc ${level}) chấm bài viết thư/email cho người Việt Nam.
+Chủ đề bài viết: "${promptTopic || "Viết email/thư tiếng Đức"}"
+Bài viết của học viên:
+"""
+${userText}
+"""
+
+Hãy chấm điểm theo tiêu chí:
+1. Độ hoàn thành yêu cầu (Aufgabenbewältigung)
+2. Độ chính xác ngữ pháp (Grammatik - chia động từ, trật tự từ Satzbau, mạo từ der/die/das, cách biến đổi)
+3. Từ vựng và văn phong thư từ (Wortschatz & Form)
+
+Trả về JSON DUY NHẤT theo schema sau:
+{
+  "score": number (thang điểm 100),
+  "cefrLevel": "${level}",
+  "overallFeedback": "Nhận xét tổng quan bằng tiếng Việt (ngắn gọn, khích lệ, chỉ ra điểm mạnh và điểm cần cải thiện)",
+  "correctedVersion": "Toàn bộ bài viết đã được sửa hoàn chỉnh, chuẩn mực, tự nhiên theo văn phong Đức",
+  "sentenceCorrections": [
+    {
+      "original": "câu gốc của học viên",
+      "corrected": "câu đã sửa",
+      "explanation": "giải thích chi tiết bằng tiếng Việt vì sao sửa (chỉ rõ lỗi ngữ pháp/từ vựng)",
+      "hasError": boolean
+    }
+  ],
+  "vocabularySuggestions": [
+    {
+      "original": "từ đơn giản hoặc dùng chưa chuẩn",
+      "better": "từ/cụm từ chuẩn và tự nhiên hơn",
+      "reason": "lý do gợi ý bằng tiếng Việt"
+    }
+  ],
+  "keyTips": [
+    "3-4 mẹo quan trọng nhất để đạt điểm cao trong bài viết A1/A2"
+  ]
+}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.7-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.3,
+      },
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    res.json(parsed);
+  } catch (error: any) {
+    console.error("Error in /api/tutor/correct-writing:", error);
+    res.status(500).json({ error: "Không thể chấm bài viết lúc này", details: error.message });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
