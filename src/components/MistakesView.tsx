@@ -1,38 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  AlertCircle, 
-  Trash2, 
-  RotateCcw, 
-  CheckCircle2, 
-  XCircle, 
-  ArrowRight, 
-  Sparkles,
-  Layers,
-  BookOpen,
-  Filter
+import React, { useEffect, useState } from 'react';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  RotateCcw,
+  Trash2,
+  XCircle,
 } from 'lucide-react';
 import { storageService } from '../services/storageService';
 import { MistakeItem } from '../types';
-import { speechService } from '../services/speechService';
+
+const categoryLabel = (category: string) => {
+  if (category === 'article') return 'Quán từ';
+  if (category === 'grammar') return 'Ngữ pháp';
+  if (category === 'sentence_order') return 'Vị trí từ';
+  if (category === 'vocabulary') return 'Từ vựng';
+  return 'Khác';
+};
 
 export const MistakesView: React.FC = () => {
   const [mistakes, setMistakes] = useState<MistakeItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  
-  // Practice Mode State
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isPracticing, setIsPracticing] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [practiceInput, setPracticeInput] = useState('');
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    loadMistakes();
-  }, []);
+  const loadMistakes = () => setMistakes(storageService.getMistakes());
+  useEffect(() => { loadMistakes(); }, []);
 
-  const loadMistakes = () => {
-    setMistakes(storageService.getMistakes());
-  };
+  const filteredMistakes = mistakes.filter((mistake) => selectedCategory === 'all' || mistake.category === selectedCategory);
 
   const handleDelete = (id: string) => {
     storageService.removeMistake(id);
@@ -44,13 +42,8 @@ export const MistakesView: React.FC = () => {
     loadMistakes();
   };
 
-  const filteredMistakes = (mistakes || []).filter((m) => {
-    if (selectedCategory !== 'all' && m.category !== selectedCategory) return false;
-    return true;
-  });
-
   const handleStartPractice = () => {
-    if (filteredMistakes.length === 0) return;
+    if (!filteredMistakes.length) return;
     setIsPracticing(true);
     setCurrentIdx(0);
     setPracticeInput('');
@@ -61,245 +54,51 @@ export const MistakesView: React.FC = () => {
   const handleCheckPractice = () => {
     const item = filteredMistakes[currentIdx];
     if (!item || isAnswerChecked) return;
-
-    const cleanInput = practiceInput.trim().toLowerCase();
-    const cleanCorrect = item.correctAnswer.trim().toLowerCase();
-
-    const correct = cleanInput === cleanCorrect;
+    const correct = practiceInput.trim().toLowerCase() === item.correctAnswer.trim().toLowerCase();
     setIsCorrect(correct);
     setIsAnswerChecked(true);
-
-    if (correct) {
-      // Remove from mistakes since mastered
-      storageService.removeMistake(item.id);
-    }
+    if (correct) storageService.removeMistake(item.id);
   };
 
   const handleNextPractice = () => {
     if (currentIdx + 1 < filteredMistakes.length) {
-      setCurrentIdx((p) => p + 1);
+      setCurrentIdx((index) => index + 1);
       setPracticeInput('');
       setIsAnswerChecked(false);
       setIsCorrect(null);
-    } else {
-      setIsPracticing(false);
-      loadMistakes();
+      return;
     }
+    setIsPracticing(false);
+    loadMistakes();
   };
 
   const categories = [
     { id: 'all', label: 'Tất cả' },
-    { id: 'article', label: 'Quán từ der/die/das' },
+    { id: 'article', label: 'Quán từ' },
     { id: 'grammar', label: 'Ngữ pháp' },
     { id: 'sentence_order', label: 'Vị trí từ' },
     { id: 'vocabulary', label: 'Từ vựng' },
   ];
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fadeIn pb-24">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <AlertCircle className="w-7 h-7 text-red-600" />
-            Sổ Tay Lỗi Sai (Mistakes Notebook)
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Ghi lại mọi câu làm chưa đúng để phân tích nguyên nhân và luyện tập lại đến khi thành thạo.
-          </p>
-        </div>
-
-        {mistakes.length > 0 && !isPracticing && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleStartPractice}
-              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-xs shadow-sm flex items-center gap-1.5 transition-colors"
-            >
-              <RotateCcw className="w-4 h-4" /> Luyện tập lại ngay ({filteredMistakes.length})
-            </button>
-            <button
-              onClick={handleClearAll}
-              className="p-2.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl transition-colors border border-slate-200"
-              title="Xóa tất cả lỗi"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+  if (isPracticing && filteredMistakes[currentIdx]) {
+    const item = filteredMistakes[currentIdx];
+    return (
+      <div className="mx-auto max-w-2xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-10 animate-fadeIn">
+        <div className="mb-5 flex items-center justify-between"><div><p className="text-[11px] font-black uppercase tracking-[0.16em] text-red-600">Luyện lỗi {currentIdx + 1}/{filteredMistakes.length}</p><h1 className="mt-1 text-2xl font-black text-slate-950">Làm lại câu này</h1></div><button onClick={() => { setIsPracticing(false); loadMistakes(); }} className="min-h-10 rounded-xl px-3 text-xs font-black text-slate-400">Thoát</button></div>
+        <section className="rounded-[24px] border border-black/[0.06] bg-white p-5 shadow-sm sm:p-6"><span className="rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-black text-red-700">{categoryLabel(item.category)}</span><h2 className="mt-4 text-lg font-black leading-7 text-slate-950">{item.question}</h2><input value={practiceInput} onChange={(e) => setPracticeInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') isAnswerChecked ? handleNextPractice() : handleCheckPractice(); }} disabled={isAnswerChecked} placeholder="Gõ đáp án…" className="mt-5 min-h-12 w-full rounded-xl bg-[#f7f7f5] px-4 text-sm font-bold outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-red-300" />{isAnswerChecked && <div className={`mt-4 rounded-2xl p-4 text-xs leading-5 ${isCorrect ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}><p className="flex items-center gap-1.5 font-black">{isCorrect ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}{isCorrect ? 'Đúng rồi' : 'Chưa đúng'}</p><p className="mt-1"><span className="font-black">Đáp án:</span> {item.correctAnswer}</p><p className="mt-1 text-slate-600">{item.explanation}</p></div>}<div className="mt-5 flex justify-end">{!isAnswerChecked ? <button disabled={!practiceInput.trim()} onClick={handleCheckPractice} className="min-h-11 rounded-xl bg-slate-950 px-5 text-xs font-black text-white disabled:opacity-30">Kiểm tra</button> : <button onClick={handleNextPractice} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-xs font-black text-white">{currentIdx + 1 < filteredMistakes.length ? 'Câu tiếp' : 'Hoàn tất'}<ArrowRight className="h-4 w-4" /></button>}</div></section>
       </div>
+    );
+  }
 
-      {/* Category Filter Chips */}
-      {!isPracticing && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-full font-bold transition-colors shrink-0 ${
-                selectedCategory === cat.id
-                  ? 'bg-red-600 text-white'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      )}
+  return (
+    <div className="mx-auto max-w-3xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-10 animate-fadeIn">
+      <header className="flex items-end justify-between gap-4"><div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-600">Sổ lỗi</p><h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">Lỗi cần ôn · {mistakes.length}</h1></div>{mistakes.length > 0 && <button onClick={handleStartPractice} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white"><RotateCcw className="h-4 w-4" />Luyện lại</button>}</header>
 
-      {/* ======================================================================= */}
-      {/* PRACTICE MODE */}
-      {/* ======================================================================= */}
-      {isPracticing && filteredMistakes[currentIdx] ? (
-        <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-lg space-y-5 animate-fadeIn">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <span className="text-xs font-bold text-red-600 uppercase tracking-wider">
-              Luyện lại câu sai {currentIdx + 1} / {filteredMistakes.length}
-            </span>
-            <button
-              onClick={() => {
-                setIsPracticing(false);
-                loadMistakes();
-              }}
-              className="text-xs font-bold text-slate-400 hover:text-slate-700"
-            >
-              Thoát luyện tập ✕
-            </button>
-          </div>
+      <div className="mt-5 flex gap-2 overflow-x-auto pb-1">{categories.map((category) => <button key={category.id} onClick={() => setSelectedCategory(category.id)} className={`min-h-9 shrink-0 rounded-xl px-3 text-xs font-black ${selectedCategory === category.id ? 'bg-red-600 text-white' : 'bg-white text-slate-500 ring-1 ring-black/[0.06]'}`}>{category.label}</button>)}</div>
 
-          <div className="space-y-3">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-              {filteredMistakes[currentIdx].question}
-            </h3>
+      {filteredMistakes.length === 0 ? <div className="mt-6 rounded-[24px] border border-dashed border-slate-200 bg-white py-16 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" /><p className="mt-3 text-sm font-black text-slate-700">Không có lỗi trong nhóm này</p><p className="mt-1 text-xs text-slate-400">Lỗi mới sẽ tự xuất hiện sau khi làm bài.</p></div> : <div className="mt-5 space-y-2">{filteredMistakes.map((item) => <article key={item.id} className="rounded-[20px] border border-black/[0.06] bg-white p-4 shadow-sm"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="rounded-md bg-red-50 px-2 py-0.5 text-[10px] font-black text-red-700">{categoryLabel(item.category)}</span></div><h2 className="mt-2 text-sm font-black leading-6 text-slate-950">{item.question}</h2><div className="mt-3 grid gap-1 text-xs"><p className="text-red-600"><span className="font-black">Sai:</span> {item.userAnswer}</p><p className="text-emerald-700"><span className="font-black">Đúng:</span> {item.correctAnswer}</p><details className="mt-1 text-slate-500"><summary className="cursor-pointer font-bold">Vì sao?</summary><p className="mt-1 leading-5">{item.explanation}</p></details></div></div><button onClick={() => handleDelete(item.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-300 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button></div></article>)}</div>}
 
-            <input
-              type="text"
-              placeholder="Gõ đáp án chính xác vào đây..."
-              disabled={isAnswerChecked}
-              value={practiceInput}
-              onChange={(e) => setPracticeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (!isAnswerChecked) handleCheckPractice();
-                  else handleNextPractice();
-                }
-              }}
-              className="w-full p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-
-          {isAnswerChecked && (
-            <div
-              className={`p-4 rounded-2xl text-xs space-y-1.5 ${
-                isCorrect
-                  ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-                  : 'bg-red-50 text-red-900 border border-red-200'
-              }`}
-            >
-              <div className="flex items-center gap-1.5 font-bold text-sm">
-                {isCorrect ? (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Xuất sắc! Bạn đã sửa đúng lỗi này.
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-5 h-5 text-red-600" /> Vẫn chưa đúng rồi.
-                  </>
-                )}
-              </div>
-              <p className="font-semibold text-slate-800">
-                Đáp án chuẩn:{' '}
-                <strong className="text-emerald-700">
-                  {filteredMistakes[currentIdx].correctAnswer}
-                </strong>
-              </p>
-              <p className="text-slate-600">
-                {filteredMistakes[currentIdx].explanation}
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end pt-2">
-            {!isAnswerChecked ? (
-              <button
-                disabled={!practiceInput.trim()}
-                onClick={handleCheckPractice}
-                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-sm"
-              >
-                Kiểm tra lại
-              </button>
-            ) : (
-              <button
-                onClick={handleNextPractice}
-                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-2"
-              >
-                {currentIdx + 1 < filteredMistakes.length ? 'Câu tiếp theo' : 'Hoàn tất'}
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      ) : null}
-
-      {/* ======================================================================= */}
-      {/* MISTAKES LIST VIEW */}
-      {/* ======================================================================= */}
-      {!isPracticing && (
-        <div className="space-y-3">
-          {filteredMistakes.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 text-slate-400 space-y-2">
-              <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500" />
-              <p className="font-bold text-slate-700 text-base">
-                Sổ tay sạch bóng lỗi sai!
-              </p>
-              <p className="text-xs">
-                Khi bạn làm bài tập hoặc mini test, nếu có câu nào chưa đúng sẽ được tự động lưu vào đây để ôn luyện.
-              </p>
-            </div>
-          ) : (
-            filteredMistakes.map((item) => (
-              <div
-                key={item.id}
-                className="p-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                      {item.category === 'article'
-                        ? 'Quán từ der/die/das'
-                        : item.category === 'sentence_order'
-                        ? 'Vị trí từ'
-                        : item.category === 'vocabulary'
-                        ? 'Từ vựng'
-                        : 'Ngữ pháp'}
-                    </span>
-                    <h4 className="font-bold text-slate-900 text-base">
-                      {item.question}
-                    </h4>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
-                    title="Xóa lỗi này"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1">
-                  <p className="text-red-700">
-                    ❌ Bạn đã chọn: <del className="font-semibold">{item.userAnswer}</del>
-                  </p>
-                  <p className="text-emerald-700 font-bold">
-                    👉 Đáp án đúng: {item.correctAnswer}
-                  </p>
-                  <p className="text-slate-600 italic pt-1">{item.explanation}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      {mistakes.length > 0 && <div className="mt-8 flex items-center justify-between rounded-2xl bg-red-50/60 px-4 py-3"><div className="flex items-center gap-2 text-xs font-bold text-red-800"><AlertCircle className="h-4 w-4" />Chỉ xóa toàn bộ khi bạn muốn làm mới sổ lỗi.</div><button onClick={handleClearAll} className="min-h-9 rounded-xl px-3 text-xs font-black text-red-700">Xóa hết</button></div>}
     </div>
   );
 };

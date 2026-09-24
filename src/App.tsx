@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { DailyDashboard } from './components/DailyDashboard';
@@ -24,21 +24,16 @@ export default function App() {
 
   const [progress, setProgress] = useState<UserProgress>(() => storageService.getProgress());
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-
-  // Modals state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [notesTarget, setNotesTarget] = useState<{ id?: string; title?: string }>({});
   const [isDailySessionOpen, setIsDailySessionOpen] = useState(false);
-
-  // Mistakes count for bottom nav badge
   const [mistakesCount, setMistakesCount] = useState(0);
 
   useEffect(() => {
     refreshProgress();
   }, []);
 
-  // Keyboard shortcut for quick search: Ctrl+K or Cmd+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -46,6 +41,7 @@ export default function App() {
         setIsSearchOpen((p) => !p);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -57,8 +53,8 @@ export default function App() {
   };
 
   const handleStartLesson = (lessonId: string) => {
-    // Look up lesson across all courses
     let found: Lesson | null = null;
+
     for (const course of Object.values(COURSES_DATA)) {
       for (const topic of course.topics) {
         for (const lesson of topic.lessons) {
@@ -72,12 +68,10 @@ export default function App() {
       if (found) break;
     }
 
-    if (found) {
-      setActiveLesson(found);
-    }
+    if (found) setActiveLesson(found);
   };
 
-  const handleFinishLesson = (lessonId: string, score: number) => {
+  const handleFinishLesson = (_lessonId: string, _score: number) => {
     setActiveLesson(null);
     refreshProgress();
   };
@@ -94,63 +88,45 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
-      {/* Top Navbar */}
+    <div className="min-h-screen bg-[#f7f7f5] text-slate-950 font-sans selection:bg-amber-200 selection:text-slate-950">
       <Navbar
         currentView={currentView}
-        onNavigate={(view) => setCurrentView(view)}
+        onNavigate={setCurrentView}
         progress={progress}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenNotes={() => handleOpenNotes()}
         onOpenDailySession={() => setIsDailySessionOpen(true)}
       />
 
-      {/* Main View Area */}
-      <main className="flex-1">
+      <main className="min-h-[calc(100vh-64px)]">
         {currentView === 'home' && (
           <DailyDashboard
             progress={progress}
             onStartLesson={handleStartLesson}
-            onNavigate={(view) => setCurrentView(view)}
+            onNavigate={setCurrentView}
             onOpenDailySession={() => setIsDailySessionOpen(true)}
           />
         )}
 
         {currentView === 'learn' && (
-          <RoadmapView
-            progress={progress}
-            onSelectLesson={handleStartLesson}
-          />
+          <RoadmapView progress={progress} onSelectLesson={handleStartLesson} />
         )}
-
-        {currentView === 'vocab' && (
-          <VocabularyView onOpenNotes={handleOpenNotes} />
-        )}
-
+        {currentView === 'vocab' && <VocabularyView onOpenNotes={handleOpenNotes} />}
         {currentView === 'grammar' && <GrammarView />}
-
         {currentView === 'conversation' && <ConversationView />}
-
         {currentView === 'tutor' && <AITutorView />}
-
         {currentView === 'mistakes' && <MistakesView />}
-
         {currentView === 'progress' && (
-          <ProgressView
-            progress={progress}
-            onResetProgress={handleResetProgress}
-          />
+          <ProgressView progress={progress} onResetProgress={handleResetProgress} />
         )}
       </main>
 
-      {/* Bottom Mobile Navigation */}
       <BottomNav
         currentView={currentView}
-        onNavigate={(view) => setCurrentView(view)}
+        onNavigate={setCurrentView}
         mistakesCount={mistakesCount}
       />
 
-      {/* Interactive 5-Step Lesson Player Modal */}
       {activeLesson && (
         <LessonPlayer
           lesson={activeLesson}
@@ -159,7 +135,6 @@ export default function App() {
         />
       )}
 
-      {/* Global Quick Search Modal */}
       <GlobalSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
@@ -167,13 +142,12 @@ export default function App() {
           setIsSearchOpen(false);
           handleStartLesson(lessonId);
         }}
-        onSelectGrammar={(grammarId) => {
+        onSelectGrammar={() => {
           setIsSearchOpen(false);
           setCurrentView('grammar');
         }}
       />
 
-      {/* Notes Modal */}
       <NotesModal
         isOpen={isNotesOpen}
         onClose={() => setIsNotesOpen(false)}
@@ -181,7 +155,6 @@ export default function App() {
         defaultTitle={notesTarget.title}
       />
 
-      {/* 20-30 Min Daily Study Session Modal */}
       <DailyStudySessionModal
         isOpen={isDailySessionOpen}
         onClose={() => setIsDailySessionOpen(false)}

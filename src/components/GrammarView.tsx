@@ -1,378 +1,111 @@
-import React, { useState } from 'react';
-import { 
-  BookOpen, 
-  Search, 
-  Volume2, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Sparkles, 
-  ArrowRight, 
-  HelpCircle,
-  Play,
+import React, { useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BookOpen,
   Check,
-  RotateCcw
+  RotateCcw,
+  Search,
+  Sparkles,
+  Volume2,
 } from 'lucide-react';
 import { GRAMMAR_LIBRARY } from '../data/grammarData';
-import { GrammarLesson, Exercise } from '../types';
+import { Exercise, GrammarLesson } from '../types';
 import { speechService } from '../services/speechService';
 import { storageService } from '../services/storageService';
+
+const difficultyLabel = {
+  easy: 'Nền tảng',
+  medium: 'Cốt lõi',
+  hard: 'Nâng cao',
+};
 
 export const GrammarView: React.FC = () => {
   const [selectedLesson, setSelectedLesson] = useState<GrammarLesson | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
-
-  // Test mode inside selected grammar lesson
-  const [testQuestionIdx, setTestQuestionIdx] = useState(0);
+  const [testQuestionIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
 
-  const filteredGrammar = GRAMMAR_LIBRARY.filter((g) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (q && !g.title.toLowerCase().includes(q) && !g.vietnameseExplanation.toLowerCase().includes(q) && !g.germanTitle.toLowerCase().includes(q)) {
-      return false;
-    }
-    if (selectedDifficulty !== 'all' && g.difficulty !== selectedDifficulty) {
-      return false;
-    }
-    return true;
-  });
+  const filteredGrammar = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    return GRAMMAR_LIBRARY.filter((lesson) => {
+      if (query && !`${lesson.title} ${lesson.germanTitle} ${lesson.vietnameseExplanation}`.toLowerCase().includes(query)) return false;
+      if (selectedDifficulty !== 'all' && lesson.difficulty !== selectedDifficulty) return false;
+      return true;
+    });
+  }, [searchQuery, selectedDifficulty]);
+
+  const grouped = useMemo(() => (['A0', 'A1', 'A2'] as const).map((level) => ({
+    level,
+    lessons: filteredGrammar.filter((lesson) => lesson.level === level),
+  })).filter((group) => group.lessons.length > 0), [filteredGrammar]);
 
   const handleSelectGrammar = (lesson: GrammarLesson) => {
     setSelectedLesson(lesson);
-    setTestQuestionIdx(0);
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
     setIsAnswerCorrect(null);
   };
 
+  const answerText = (answer: string | string[]) => Array.isArray(answer) ? answer[0] || '' : answer;
+
   const handleCheckGrammarQuestion = (correctAnswer: string | string[], question: Exercise) => {
     if (!selectedOption || isAnswerSubmitted) return;
-
-    const correctAnsStr = Array.isArray(correctAnswer) ? correctAnswer[0] || '' : correctAnswer;
-    const isCorrect = selectedOption.toLowerCase().trim() === correctAnsStr.toLowerCase().trim();
-    setIsAnswerCorrect(isCorrect);
+    const correct = answerText(correctAnswer);
+    const ok = selectedOption.toLowerCase().trim() === correct.toLowerCase().trim();
+    setIsAnswerCorrect(ok);
     setIsAnswerSubmitted(true);
-
-    if (!isCorrect) {
+    if (!ok) {
       storageService.saveMistake({
         questionId: question.id,
         category: 'grammar',
         question: question.question,
         userAnswer: selectedOption,
-        correctAnswer: correctAnsStr,
+        correctAnswer: correct,
         explanation: question.explanation || 'Xem lại quy tắc ngữ pháp tương ứng.',
         lessonId: selectedLesson?.id,
       });
     }
   };
 
+  if (selectedLesson) {
+    const question = selectedLesson.practiceQuestions?.[testQuestionIdx];
+    const correctAnswer = question ? answerText(question.correctAnswer) : '';
+
+    return (
+      <div className="mx-auto max-w-3xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-10 animate-fadeIn">
+        <button onClick={() => setSelectedLesson(null)} className="mb-5 inline-flex min-h-10 items-center gap-2 text-xs font-black text-slate-500 hover:text-slate-950"><ArrowLeft className="h-4 w-4" />Tất cả ngữ pháp</button>
+
+        <section className="rounded-[26px] border border-black/[0.06] bg-white p-5 shadow-sm sm:p-7">
+          <div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-800">{selectedLesson.level}</span><span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">{difficultyLabel[selectedLesson.difficulty]}</span></div>
+          <h1 className="mt-4 text-2xl font-black tracking-[-0.025em] text-slate-950 sm:text-3xl">{selectedLesson.title}</h1>
+          <p className="mt-1 text-sm font-bold text-slate-400">{selectedLesson.germanTitle}</p>
+          <p className="mt-5 text-sm leading-6 text-slate-600">{selectedLesson.vietnameseExplanation}</p>
+
+          {selectedLesson.formula && <div className="mt-5 rounded-2xl bg-slate-950 p-4 text-sm font-bold leading-6 text-white"><p className="mb-1 text-[10px] font-black uppercase tracking-[0.15em] text-amber-400">Công thức</p><pre className="whitespace-pre-wrap font-sans">{selectedLesson.formula}</pre></div>}
+
+          <div className="mt-6"><p className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Ví dụ</p><div className="mt-2 space-y-2">{selectedLesson.examples.map((example, index) => <div key={index} className="flex items-center gap-3 rounded-2xl bg-[#f7f7f5] px-4 py-3"><div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{example.german}</p><p className="mt-0.5 text-xs text-slate-500">{example.vietnamese}</p></div><button onClick={() => speechService.speak(example.german)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-slate-500"><Volume2 className="h-4 w-4" /></button></div>)}</div></div>
+
+          {selectedLesson.commonMistakes?.length > 0 && <div className="mt-6 rounded-2xl border border-red-100 bg-red-50/60 p-4"><p className="flex items-center gap-2 text-xs font-black text-red-800"><AlertTriangle className="h-4 w-4" />Lỗi hay gặp</p><div className="mt-3 space-y-3">{selectedLesson.commonMistakes.map((mistake, index) => <div key={index} className="text-xs leading-5"><p className="text-red-600 line-through">{mistake.wrong}</p><p className="font-black text-emerald-700">{mistake.correct}</p><p className="text-slate-500">{mistake.reason}</p></div>)}</div></div>}
+        </section>
+
+        {question && <section className="mt-4 rounded-[24px] border border-amber-100 bg-amber-50/50 p-5 sm:p-6"><div className="flex items-center gap-2 text-xs font-black text-amber-800"><Sparkles className="h-4 w-4" />Luyện ngay</div><h2 className="mt-3 text-base font-black text-slate-950">{question.question}</h2>{question.options && <div className="mt-4 grid gap-2 sm:grid-cols-2">{question.options.map((option) => { const selected = selectedOption === option; const right = isAnswerSubmitted && option.toLowerCase().trim() === correctAnswer.toLowerCase().trim(); const wrong = isAnswerSubmitted && selected && !right; return <button key={option} disabled={isAnswerSubmitted} onClick={() => setSelectedOption(option)} className={`flex min-h-12 items-center justify-between rounded-xl border px-4 text-left text-xs font-black transition ${right ? 'border-emerald-500 bg-emerald-500 text-white' : wrong ? 'border-red-500 bg-red-500 text-white' : selected ? 'border-slate-950 bg-slate-950 text-white' : 'border-black/[0.06] bg-white text-slate-700'}`}>{option}{right && <Check className="h-4 w-4" />}</button>; })}</div>}{isAnswerSubmitted && <div className={`mt-3 rounded-xl p-3 text-xs leading-5 ${isAnswerCorrect ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}><p className="font-black">{isAnswerCorrect ? 'Chính xác' : 'Chưa đúng'}</p><p>{question.explanation}</p></div>}<div className="mt-4 flex justify-end">{!isAnswerSubmitted ? <button disabled={!selectedOption} onClick={() => handleCheckGrammarQuestion(question.correctAnswer, question)} className="min-h-10 rounded-xl bg-slate-950 px-5 text-xs font-black text-white disabled:opacity-30">Kiểm tra</button> : <button onClick={() => { setSelectedOption(null); setIsAnswerSubmitted(false); setIsAnswerCorrect(null); }} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-slate-950 px-5 text-xs font-black text-white"><RotateCcw className="h-3.5 w-3.5" />Làm lại</button>}</div></section>}
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fadeIn pb-24">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-          <BookOpen className="w-7 h-7 text-purple-600" />
-          Thư Viện Ngữ Pháp (A0 → A2)
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          18 bài giảng ngữ pháp cốt lõi, giải thích súc tích bằng tiếng Việt, tránh thuật ngữ phức tạp, kèm bẫy lỗi sai thực tế.
-        </p>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-10 animate-fadeIn">
+      <header><p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Ngữ pháp</p><h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">Học theo quy tắc, không theo bức tường chữ</h1></header>
 
-      {/* Filter and Search Bar */}
-      <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Tìm quy tắc (sein, Akkusativ, Vị trí 2...)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
-          />
-        </div>
+      <section className="mt-5 rounded-[22px] border border-black/[0.06] bg-white p-3 shadow-sm sm:p-4"><div className="relative"><Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Tìm: Dativ, động từ, vị trí từ..." className="min-h-11 w-full rounded-xl bg-[#f7f7f5] pl-10 pr-4 text-sm font-medium outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-amber-400" /></div><div className="mt-3 flex gap-2 overflow-x-auto pb-1">{(['all', 'easy', 'medium', 'hard'] as const).map((value) => <button key={value} onClick={() => setSelectedDifficulty(value)} className={`min-h-9 shrink-0 rounded-xl px-3 text-xs font-black ${selectedDifficulty === value ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-500'}`}>{value === 'all' ? 'Tất cả' : difficultyLabel[value]}</button>)}</div></section>
 
-        <div className="flex items-center gap-1.5 self-start sm:self-auto text-xs">
-          <button
-            onClick={() => setSelectedDifficulty('all')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
-              selectedDifficulty === 'all'
-                ? 'bg-purple-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Tất cả (18)
-          </button>
-          <button
-            onClick={() => setSelectedDifficulty('easy')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
-              selectedDifficulty === 'easy'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Dễ (A0)
-          </button>
-          <button
-            onClick={() => setSelectedDifficulty('medium')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
-              selectedDifficulty === 'medium'
-                ? 'bg-amber-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Trung bình (A1)
-          </button>
-          <button
-            onClick={() => setSelectedDifficulty('hard')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-colors ${
-              selectedDifficulty === 'hard'
-                ? 'bg-red-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Nâng cao (A2)
-          </button>
-        </div>
-      </div>
+      <div className="mt-6 space-y-7">{grouped.map((group) => <section key={group.level}><div className="mb-3 flex items-end justify-between px-1"><div><p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Cấp độ</p><h2 className="text-lg font-black text-slate-950">{group.level}</h2></div><span className="text-xs font-bold text-slate-400">{group.lessons.length} chủ điểm</span></div><div className="grid gap-2 sm:grid-cols-2">{group.lessons.map((lesson, index) => <button key={lesson.id} onClick={() => handleSelectGrammar(lesson)} className="flex min-h-[92px] items-start gap-3 rounded-[20px] border border-black/[0.06] bg-white p-4 text-left shadow-sm transition hover:border-amber-200"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-50 text-[11px] font-black text-amber-800">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0"><div className="flex items-center gap-2"><p className="text-sm font-black text-slate-950">{lesson.title}</p></div><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{lesson.germanTitle} · {difficultyLabel[lesson.difficulty]}</p></div></button>)}</div></section>)}</div>
 
-      {/* Grammar Cards Grid */}
-      {!selectedLesson ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredGrammar.map((item, idx) => (
-            <div
-              key={item.id}
-              onClick={() => handleSelectGrammar(item)}
-              className="p-5 bg-white rounded-3xl border border-slate-200/80 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer space-y-3 group flex flex-col justify-between"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-800 text-xs font-black flex items-center justify-center">
-                      {idx + 1}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-700 font-bold rounded">
-                      {item.level}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      item.difficulty === 'easy'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : item.difficulty === 'medium'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {item.difficulty === 'easy'
-                      ? 'Dễ hiểu'
-                      : item.difficulty === 'medium'
-                      ? 'Quan trọng'
-                      : 'Cần chú ý'}
-                  </span>
-                </div>
-
-                <h3 className="font-bold text-slate-900 text-base group-hover:text-purple-700 transition-colors">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                  {item.vietnameseExplanation}
-                </p>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs font-bold text-purple-700">
-                <span>Xem giải thích & bài tập</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        /* DETAIL VIEW OF SELECTED GRAMMAR LESSON */
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-            <button
-              onClick={() => setSelectedLesson(null)}
-              className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1"
-            >
-              ← Quay lại danh sách ngữ pháp
-            </button>
-            <span className="text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-900 px-2.5 py-0.5 rounded">
-              Cấp độ {selectedLesson.level}
-            </span>
-          </div>
-
-          {/* Title & Meaning */}
-          <div className="space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-              {selectedLesson.title}
-            </h2>
-            <p className="text-sm font-semibold text-slate-600">
-              {selectedLesson.germanTitle}
-            </p>
-            <p className="text-sm text-slate-700 leading-relaxed pt-2">
-              {selectedLesson.vietnameseExplanation}
-            </p>
-          </div>
-
-          {/* Formula Box */}
-          <div className="p-5 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2">
-            <p className="text-amber-400 font-bold uppercase tracking-wider">
-              ⚡ Công thức & Cấu trúc ngữ pháp:
-            </p>
-            <p className="text-slate-200 whitespace-pre-wrap leading-relaxed">
-              {selectedLesson.formula}
-            </p>
-          </div>
-
-          {/* Examples */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Ví dụ mẫu thực tế
-            </h4>
-            <div className="space-y-2">
-              {selectedLesson.examples.map((ex, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{ex.german}</p>
-                    <p className="text-xs text-slate-600">{ex.vietnamese}</p>
-                  </div>
-                  <button
-                    onClick={() => speechService.speak(ex.german)}
-                    className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Common Mistakes */}
-          {selectedLesson.commonMistakes && selectedLesson.commonMistakes.length > 0 && (
-            <div className="p-5 bg-red-50 rounded-2xl border border-red-200 space-y-2">
-              <h4 className="flex items-center gap-2 text-xs font-bold text-red-900 uppercase">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
-                Lỗi sai phổ biến người Việt hay mắc phải:
-              </h4>
-              {selectedLesson.commonMistakes.map((m, idx) => (
-                <div key={idx} className="text-xs text-red-800 space-y-1 pt-1">
-                  <p>
-                    ❌ <del>{m.wrong}</del>
-                  </p>
-                  <p>
-                    👉 <strong className="text-emerald-700">{m.correct}</strong>
-                  </p>
-                  <p className="text-[11px] text-red-700 italic">{m.reason}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Practice Questions for this Rule */}
-          {selectedLesson.practiceQuestions && selectedLesson.practiceQuestions.length > 0 && (
-            <div className="p-6 bg-purple-50/50 rounded-3xl border border-purple-200 space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-                Luyện tập ngay quy tắc này
-              </h4>
-
-              {(() => {
-                const q = selectedLesson.practiceQuestions[testQuestionIdx];
-                if (!q) return null;
-
-                return (
-                  <div className="space-y-4">
-                    <p className="font-bold text-slate-900 text-sm sm:text-base">
-                      {q.question}
-                    </p>
-
-                    {q.options && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {q.options.map((opt) => {
-                          const isSelected = selectedOption === opt;
-                          let style =
-                            'bg-white border-slate-200 text-slate-800 hover:border-purple-400';
-
-                          if (isAnswerSubmitted) {
-                            if (opt.toLowerCase() === q.correctAnswer.toLowerCase()) {
-                              style = 'bg-emerald-600 text-white border-emerald-600';
-                            } else if (isSelected) {
-                              style = 'bg-red-600 text-white border-red-600';
-                            } else {
-                              style = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
-                            }
-                          } else if (isSelected) {
-                            style = 'bg-purple-600 text-white border-purple-600';
-                          }
-
-                          return (
-                            <button
-                              key={opt}
-                              disabled={isAnswerSubmitted}
-                              onClick={() => setSelectedOption(opt)}
-                              className={`p-3 rounded-xl font-bold text-xs border text-left flex items-center justify-between transition-all ${style}`}
-                            >
-                              <span>{opt}</span>
-                              {isAnswerSubmitted &&
-                                opt.toLowerCase() === q.correctAnswer.toLowerCase() && (
-                                  <Check className="w-4 h-4 text-white" />
-                                )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {isAnswerSubmitted && (
-                      <div
-                        className={`p-3.5 rounded-xl text-xs space-y-1 ${
-                          isAnswerCorrect
-                            ? 'bg-emerald-100 text-emerald-900'
-                            : 'bg-red-100 text-red-900'
-                        }`}
-                      >
-                        <p className="font-bold">
-                          {isAnswerCorrect ? '🎉 Chính xác!' : '❌ Chưa đúng.'}
-                        </p>
-                        <p>{q.explanation}</p>
-                      </div>
-                    )}
-
-                    <div className="flex justify-end pt-1">
-                      {!isAnswerSubmitted ? (
-                        <button
-                          disabled={!selectedOption}
-                          onClick={() => handleCheckGrammarQuestion(q.correctAnswer, q)}
-                          className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm disabled:opacity-40"
-                        >
-                          Kiểm tra đáp án
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedOption(null);
-                            setIsAnswerSubmitted(false);
-                            setIsAnswerCorrect(null);
-                          }}
-                          className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" /> Thử làm lại
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-      )}
+      {filteredGrammar.length === 0 && <div className="mt-6 rounded-[22px] border border-dashed border-slate-200 bg-white py-14 text-center text-sm font-bold text-slate-400"><BookOpen className="mx-auto mb-2 h-6 w-6" />Không tìm thấy chủ điểm phù hợp.</div>}
     </div>
   );
 };

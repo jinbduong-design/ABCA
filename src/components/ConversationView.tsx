@@ -1,35 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  MessageSquare, 
-  Send, 
-  Mic, 
-  MicOff, 
-  Volume2, 
-  Sparkles, 
-  CheckCircle2, 
-  AlertCircle, 
-  Lightbulb, 
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
   ArrowLeft,
-  Coffee,
-  ShoppingBag,
-  Train,
-  Plane,
-  Home,
-  Compass,
-  Activity,
   Briefcase,
+  Coffee,
+  Compass,
   Heart,
+  Home,
+  Lightbulb,
+  MessageSquare,
+  Mic,
+  MicOff,
+  Plane,
+  RefreshCw,
+  Send,
+  ShoppingBag,
   Smile,
+  Train,
   Utensils,
-  RefreshCw
+  Volume2,
+  Activity,
 } from 'lucide-react';
 import { CONVERSATION_SCENARIOS } from '../data/conversationsData';
-import { ConversationScenario, ConversationMessage } from '../types';
+import { ConversationMessage, ConversationScenario } from '../types';
 import { sendConversationMessage } from '../services/aiTutorService';
 import { speechService } from '../services/speechService';
 import { storageService } from '../services/storageService';
 
-const ICON_MAP: { [key: string]: any } = {
+const ICON_MAP: Record<string, any> = {
   Coffee,
   ShoppingBag,
   Train,
@@ -51,77 +49,55 @@ export const ConversationView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [activeHint, setActiveHint] = useState<string | null>(null);
-
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize chat when scenario selected
   useEffect(() => {
-    if (selectedScenario) {
-      const initialMessage: ConversationMessage = {
-        id: `msg_${Date.now()}`,
-        sender: 'ai',
-        text: selectedScenario.starterMessage,
-        translationVietnamese: selectedScenario.starterTranslation,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages([initialMessage]);
-      speechService.speak(selectedScenario.starterMessage);
-      setActiveHint(null);
-    }
+    if (!selectedScenario) return;
+    const initialMessage: ConversationMessage = {
+      id: `msg_${Date.now()}`,
+      sender: 'ai',
+      text: selectedScenario.starterMessage,
+      translationVietnamese: selectedScenario.starterTranslation,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages([initialMessage]);
+    speechService.speak(selectedScenario.starterMessage);
+    setActiveHint(null);
   }, [selectedScenario]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const resetConversation = () => {
+    if (!selectedScenario) return;
+    setMessages([{ id: `msg_${Date.now()}`, sender: 'ai', text: selectedScenario.starterMessage, translationVietnamese: selectedScenario.starterTranslation, timestamp: new Date().toISOString() }]);
+    setActiveHint(null);
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
     if (!text || !selectedScenario || isLoading) return;
-
-    const userMsg: ConversationMessage = {
-      id: `user_${Date.now()}`,
-      sender: 'user',
-      text,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+    const userMsg: ConversationMessage = { id: `user_${Date.now()}`, sender: 'user', text, timestamp: new Date().toISOString() };
+    setMessages((current) => [...current, userMsg]);
     setInputText('');
     setIsLoading(true);
-
-    const history = messages.map((m) => ({
-      sender: m.sender === 'user' ? 'user' : 'model',
-      text: m.text,
-    }));
-
+    const history = messages.map((message) => ({ sender: message.sender === 'user' ? 'user' : 'model', text: message.text }));
     try {
-      const res = await sendConversationMessage({
-        scenarioTitle: selectedScenario.title,
-        scenarioContext: selectedScenario.context,
-        userMessage: text,
-        history,
-      });
-
-      const aiMsg: ConversationMessage = {
+      const res = await sendConversationMessage({ scenarioTitle: selectedScenario.title, scenarioContext: selectedScenario.context, userMessage: text, history });
+      setMessages((current) => [...current, {
         id: `ai_${Date.now()}`,
         sender: 'ai',
         text: res.aiReply,
         translationVietnamese: res.aiReplyTranslation,
         correction: res.correction?.hasMistake ? res.correction : undefined,
         timestamp: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, aiMsg]);
+      }]);
       speechService.speak(res.aiReply);
-
-      if (res.vietnameseHint) {
-        setActiveHint(res.vietnameseHint);
-      }
-
-      // Add study time & experience
+      if (res.vietnameseHint) setActiveHint(res.vietnameseHint);
       storageService.addStudyTime(2);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -133,264 +109,67 @@ export const ConversationView: React.FC = () => {
       setIsListening(false);
       return;
     }
-
     setIsListening(true);
     speechService.startSpeechRecognition(
-      (transcript) => {
-        setIsListening(false);
-        setInputText(transcript);
-      },
-      () => {
-        setIsListening(false);
-      }
+      (transcript) => { setIsListening(false); setInputText(transcript); },
+      () => setIsListening(false)
     );
   };
 
+  if (!selectedScenario) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-10 animate-fadeIn">
+        <header><p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Hội thoại</p><h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">Tình huống thực tế</h1><p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">Mỗi tình huống có mục tiêu rõ ràng. AI sửa câu nhẹ nhàng trong lúc bạn hội thoại.</p></header>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {CONVERSATION_SCENARIOS.map((scenario) => {
+            const Icon = ICON_MAP[scenario.iconName] || MessageSquare;
+            return (
+              <button key={scenario.id} type="button" onClick={() => setSelectedScenario(scenario)} className="group flex min-h-[150px] flex-col justify-between rounded-[22px] border border-black/[0.06] bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-200">
+                <div><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-50 text-amber-700"><Icon className="h-5 w-5" /></span><span className="text-[10px] font-black text-slate-400">{scenario.level}</span></div><h2 className="mt-4 text-sm font-black text-slate-950">{scenario.titleVietnamese}</h2><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{scenario.context}</p></div>
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] font-black text-slate-400"><span>{scenario.category}</span><span className="text-amber-700">Bắt đầu →</span></div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-fadeIn pb-24">
-      {/* Header */}
-      {!selectedScenario ? (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-              <MessageSquare className="w-7 h-7 text-amber-600" />
-              Luyện Hội Thoại Tình Huống Thực Tế
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              13 kịch bản giao tiếp đời sống ở Đức. Đối thoại cùng AI bản xứ, được sửa lỗi ngữ pháp và nhận gợi ý câu tiếng Việt ngay khi bí từ.
-            </p>
-          </div>
+    <div className="mx-auto max-w-4xl px-3 pb-24 pt-3 sm:px-6 sm:pt-6 lg:pb-8 animate-fadeIn">
+      <section className="flex h-[calc(100vh-112px)] min-h-[580px] flex-col overflow-hidden rounded-[24px] border border-black/[0.06] bg-white shadow-sm lg:h-[82vh]">
+        <header className="flex items-center gap-3 border-b border-slate-100 px-3 py-3 sm:px-4">
+          <button onClick={() => setSelectedScenario(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"><ArrowLeft className="h-4 w-4" /></button>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-slate-950">{selectedScenario.titleVietnamese}</p><p className="truncate text-[11px] font-medium text-slate-400">{selectedScenario.aiRole} · {selectedScenario.location}</p></div>
+          <button onClick={resetConversation} className="grid h-10 w-10 place-items-center rounded-xl text-slate-400 hover:bg-slate-100"><RefreshCw className="h-4 w-4" /></button>
+        </header>
 
-          {/* Scenario Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {CONVERSATION_SCENARIOS.map((sc) => {
-              const Icon = ICON_MAP[sc.iconName] || MessageSquare;
+        <div className="border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-xs text-amber-900"><span className="font-black">Mục tiêu:</span> {selectedScenario.goal}</div>
 
-              return (
-                <div
-                  key={sc.id}
-                  onClick={() => setSelectedScenario(sc)}
-                  className="p-5 bg-white rounded-3xl border border-slate-200/80 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group"
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                        {sc.level} • {sc.category}
-                      </span>
-                    </div>
-
-                    <h3 className="font-bold text-slate-900 text-base group-hover:text-amber-700 transition-colors">
-                      {sc.titleVietnamese}
-                    </h3>
-                    <p className="text-xs text-slate-500 line-clamp-2">
-                      {sc.context}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-amber-700">
-                    <span>Bắt đầu nói chuyện</span>
-                    <span className="group-hover:translate-x-1 transition-transform">→</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          {messages.map((message) => (
+            <div key={message.id} className={`flex flex-col ${message.sender === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[88%] rounded-[20px] px-4 py-3 text-sm leading-6 sm:max-w-[76%] ${message.sender === 'user' ? 'rounded-br-md bg-slate-950 text-white' : 'rounded-bl-md bg-[#f7f7f5] text-slate-900'}`}>
+                <div className="flex items-start gap-3"><p className="flex-1 font-semibold">{message.text}</p><button onClick={() => speechService.speak(message.text)} className={`mt-0.5 shrink-0 ${message.sender === 'user' ? 'text-slate-400' : 'text-slate-400 hover:text-amber-700'}`}><Volume2 className="h-3.5 w-3.5" /></button></div>
+                {message.translationVietnamese && <p className={`mt-2 border-t pt-2 text-xs ${message.sender === 'user' ? 'border-white/10 text-slate-300' : 'border-black/[0.06] text-slate-500'}`}>{message.translationVietnamese}</p>}
+              </div>
+              {message.correction && <div className="mt-1.5 max-w-[82%] rounded-2xl border border-red-100 bg-red-50 px-3.5 py-3 text-xs leading-5 text-slate-600"><p className="flex items-center gap-1.5 font-black text-red-700"><AlertCircle className="h-3.5 w-3.5" />Sửa câu</p><p className="mt-1"><span className="font-black text-emerald-700">{message.correction.better}</span></p><p>{message.correction.explanation}</p></div>}
+            </div>
+          ))}
+          {isLoading && <div className="text-xs font-semibold text-slate-400">{selectedScenario.aiRole} đang trả lời…</div>}
+          <div ref={chatEndRef} />
         </div>
-      ) : (
-        /* ACTIVE SCENARIO CHAT ROOM */
-        <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col h-[78vh]">
-          {/* Room Header */}
-          <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSelectedScenario(null)}
-                className="p-2 hover:bg-slate-200 rounded-xl text-slate-600 transition-colors"
-                title="Quay lại danh sách"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base line-clamp-1">
-                  {selectedScenario.titleVietnamese}
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Đối tác AI: <strong className="text-slate-800">{selectedScenario.aiRole}</strong> • Địa điểm: {selectedScenario.location}
-                </p>
-              </div>
-            </div>
 
-            <button
-              onClick={() => {
-                const init: ConversationMessage = {
-                  id: `msg_${Date.now()}`,
-                  sender: 'ai',
-                  text: selectedScenario.starterMessage,
-                  translationVietnamese: selectedScenario.starterTranslation,
-                  timestamp: new Date().toISOString(),
-                };
-                setMessages([init]);
-              }}
-              className="p-2 hover:bg-slate-200 rounded-xl text-slate-500 text-xs flex items-center gap-1"
-              title="Bắt đầu lại"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        {selectedScenario.suggestedPhrases?.length > 0 && <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-[#fafaf9] px-3 py-2.5"><span className="my-auto shrink-0 text-[10px] font-black uppercase text-slate-400">Gợi ý</span>{selectedScenario.suggestedPhrases.map((phrase, index) => <button key={index} onClick={() => handleSendMessage(phrase.german)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-600 ring-1 ring-black/[0.06]">{phrase.german}</button>)}</div>}
+        {activeHint && <div className="flex items-center justify-between gap-2 border-t border-blue-100 bg-blue-50 px-4 py-2.5 text-xs text-blue-800"><span className="flex items-center gap-1.5"><Lightbulb className="h-3.5 w-3.5" />{activeHint}</span><button onClick={() => setActiveHint(null)} className="font-black">×</button></div>}
 
-          {/* Goal Banner */}
-          <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-100 text-xs text-amber-900 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              <strong>Mục tiêu:</strong> {selectedScenario.goal}
-            </span>
-          </div>
-
-          {/* Messages Stream */}
-          <div className="p-4 overflow-y-auto flex-1 space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${
-                  msg.sender === 'user' ? 'items-end' : 'items-start'
-                } space-y-1`}
-              >
-                <div
-                  className={`max-w-[85%] sm:max-w-[75%] p-4 rounded-3xl shadow-sm text-sm space-y-1.5 ${
-                    msg.sender === 'user'
-                      ? 'bg-amber-600 text-white rounded-br-none'
-                      : 'bg-slate-100 text-slate-900 rounded-bl-none'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-base leading-relaxed">{msg.text}</p>
-                    <button
-                      onClick={() => speechService.speak(msg.text)}
-                      className={`p-1 rounded-lg shrink-0 ${
-                        msg.sender === 'user'
-                          ? 'text-amber-200 hover:text-white'
-                          : 'text-slate-400 hover:text-amber-600'
-                      }`}
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {msg.translationVietnamese && (
-                    <p
-                      className={`text-xs italic pt-1 border-t ${
-                        msg.sender === 'user'
-                          ? 'text-amber-100 border-amber-500'
-                          : 'text-slate-500 border-slate-200'
-                      }`}
-                    >
-                      {msg.translationVietnamese}
-                    </p>
-                  )}
-                </div>
-
-                {/* AI Gentle Grammar Correction Bubble */}
-                {msg.correction && (
-                  <div className="max-w-[80%] p-3 bg-red-50 rounded-2xl border border-red-200 text-xs space-y-1 text-red-900 animate-fadeIn">
-                    <p className="font-bold flex items-center gap-1 text-red-700">
-                      <AlertCircle className="w-3.5 h-3.5" /> Góp ý sửa câu cho tự nhiên hơn:
-                    </p>
-                    <p>
-                      👉 Nên nói:{' '}
-                      <strong className="text-emerald-700">{msg.correction.better}</strong>
-                    </p>
-                    <p className="text-[11px] text-slate-600 italic">
-                      {msg.correction.explanation}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {isLoading && (
-              <div className="flex items-center gap-2 text-slate-400 text-xs italic">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" />
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:0.2s]" />
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:0.4s]" />
-                <span>{selectedScenario.aiRole} đang trả lời...</span>
-              </div>
-            )}
-
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Suggested quick phrases */}
-          {selectedScenario.suggestedPhrases && (
-            <div className="px-4 py-2 bg-slate-50/70 border-t border-slate-100 flex items-center gap-2 overflow-x-auto text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase shrink-0">
-                Gợi ý:
-              </span>
-              {selectedScenario.suggestedPhrases.map((phrase, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSendMessage(phrase.german)}
-                  className="px-3 py-1 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-800 rounded-full border border-slate-200 text-xs shrink-0 transition-colors shadow-2xs font-medium"
-                >
-                  {phrase.german}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Hint alert if active */}
-          {activeHint && (
-            <div className="px-4 py-2 bg-blue-50 text-blue-900 text-xs border-t border-blue-100 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5 text-blue-600" />
-                {activeHint}
-              </span>
-              <button
-                onClick={() => setActiveHint(null)}
-                className="text-blue-500 hover:text-blue-700 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          {/* Input Area */}
-          <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
-            <button
-              onClick={handleToggleMic}
-              className={`p-3 rounded-2xl transition-colors ${
-                isListening
-                  ? 'bg-red-600 text-white animate-pulse'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
-              title="Nhấn để nói tiếng Đức"
-            >
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </button>
-
-            <input
-              type="text"
-              placeholder="Gõ hoặc nói câu tiếng Đức của bạn..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSendMessage();
-              }}
-              disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-slate-50 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
-            />
-
-            <button
-              onClick={() => handleSendMessage()}
-              disabled={!inputText.trim() || isLoading}
-              className="p-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white rounded-2xl shadow-sm transition-colors"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
+        <footer className="flex items-center gap-2 border-t border-slate-100 p-3">
+          <button onClick={handleToggleMic} className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${isListening ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-600'}`}>{isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}</button>
+          <input value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }} disabled={isLoading} placeholder="Nói hoặc gõ tiếng Đức…" className="min-h-11 min-w-0 flex-1 rounded-xl bg-[#f7f7f5] px-4 text-sm font-medium outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-amber-400" />
+          <button onClick={() => handleSendMessage()} disabled={!inputText.trim() || isLoading} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-500 text-slate-950 disabled:opacity-30"><Send className="h-5 w-5" /></button>
+        </footer>
+      </section>
     </div>
   );
 };

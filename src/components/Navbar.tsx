@@ -1,5 +1,16 @@
 import React from 'react';
-import { Search, StickyNote, Flame, Sparkles, BookOpen, Layers, MessageSquare, AlertCircle, BarChart3, Bot } from 'lucide-react';
+import {
+  Search,
+  StickyNote,
+  Flame,
+  Sparkles,
+  BookOpen,
+  Layers,
+  MessageSquare,
+  AlertCircle,
+  BarChart3,
+  Bot,
+} from 'lucide-react';
 import { UserProgress } from '../types';
 
 interface NavbarProps {
@@ -11,6 +22,17 @@ interface NavbarProps {
   onOpenDailySession: () => void;
 }
 
+const navItems = [
+  { id: 'home', label: 'Hôm nay', icon: Sparkles },
+  { id: 'learn', label: 'Lộ trình', icon: BookOpen },
+  { id: 'vocab', label: 'Từ vựng', icon: Layers },
+  { id: 'grammar', label: 'Ngữ pháp', icon: BookOpen },
+  { id: 'conversation', label: 'Hội thoại', icon: MessageSquare },
+  { id: 'tutor', label: 'AI Tutor', icon: Bot },
+  { id: 'mistakes', label: 'Lỗi sai', icon: AlertCircle },
+  { id: 'progress', label: 'Tiến độ', icon: BarChart3 },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onNavigate,
@@ -20,99 +42,78 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDailySession,
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-        {/* Brand Logo & Name */}
-        <div
+    <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#f7f7f5]/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-4 px-4 sm:px-6">
+        <button
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+          className="flex shrink-0 items-center gap-3 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          aria-label="Về trang chủ"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white flex items-center justify-center font-black text-xl shadow-md group-hover:scale-105 transition-transform">
-            🇩🇪
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900 text-lg tracking-tight">
-                Deutsch<span className="text-amber-600">Start</span>
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                A0-A2
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              Học tiếng Đức từ số 0 cho người Việt
-            </p>
-          </div>
-        </div>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 text-[11px] font-black tracking-[0.12em] text-white shadow-sm">
+            DE
+          </span>
+          <span className="hidden sm:block">
+            <span className="block text-sm font-black tracking-tight text-slate-950">DeutschStart</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              A0 → A2
+            </span>
+          </span>
+        </button>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1">
-          {[
-            { id: 'home', label: 'Trang chủ', icon: Sparkles },
-            { id: 'learn', label: 'Lộ trình', icon: BookOpen },
-            { id: 'vocab', label: 'Từ vựng', icon: Layers },
-            { id: 'grammar', label: 'Ngữ pháp', icon: BookOpen },
-            { id: 'conversation', label: 'Hội thoại', icon: MessageSquare },
-            { id: 'tutor', label: 'Gia sư AI', icon: Bot },
-            { id: 'mistakes', label: 'Sổ lỗi sai', icon: AlertCircle },
-            { id: 'progress', label: 'Tiến độ', icon: BarChart3 },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = currentView === tab.id;
+        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = currentView === item.id;
+
             return (
               <button
-                key={tab.id}
-                onClick={() => onNavigate(tab.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                  isActive
-                    ? 'bg-amber-50 text-amber-700 font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-[12px] font-semibold transition-all ${
+                  active
+                    ? 'bg-white text-slate-950 shadow-sm ring-1 ring-black/[0.06]'
+                    : 'text-slate-500 hover:bg-white/70 hover:text-slate-950'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-600' : 'text-slate-400'}`} />
-                {tab.label}
+                <Icon className={`h-3.5 w-3.5 ${active ? 'text-amber-600' : 'text-slate-400'}`} />
+                {item.label}
               </button>
             );
           })}
         </nav>
 
-        {/* Right Stats & Action Buttons */}
-        <div className="flex items-center gap-2">
-          {/* Quick 20-min daily study button */}
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={onOpenDailySession}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-lg text-xs font-bold shadow-sm hover:opacity-95 transition-opacity"
+            className="hidden items-center gap-2 rounded-xl bg-slate-950 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 md:flex"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Phiên 20 phút</span>
+            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+            Học 20 phút
           </button>
 
-          {/* Streak Counter */}
-          <div
+          <button
             onClick={() => onNavigate('progress')}
-            className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 border border-orange-200/80 rounded-lg text-orange-700 text-xs font-bold cursor-pointer hover:bg-orange-100/80 transition-colors"
-            title="Chuỗi ngày học liên tục"
+            className="flex h-9 items-center gap-1.5 rounded-xl border border-black/[0.06] bg-white px-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:border-amber-200 hover:text-amber-700"
+            title="Chuỗi ngày học"
           >
-            <Flame className="w-4 h-4 text-orange-500 fill-orange-500 animate-bounce" />
-            <span>{progress.streakDays}</span>
-          </div>
+            <Flame className="h-4 w-4 fill-orange-400 text-orange-400" />
+            {progress.streakDays || 0}
+          </button>
 
-          {/* Search Button */}
           <button
             onClick={onOpenSearch}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200/80"
-            title="Tìm kiếm từ vựng / ngữ pháp"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-black/[0.06] bg-white text-slate-500 shadow-sm transition hover:text-slate-950"
+            title="Tìm kiếm — Ctrl/⌘ K"
           >
-            <Search className="w-4 h-4" />
+            <Search className="h-4 w-4" />
           </button>
 
-          {/* Notes Button */}
           <button
             onClick={onOpenNotes}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200/80"
-            title="Sổ tay ghi chú cá nhân"
+            className="hidden h-9 w-9 place-items-center rounded-xl border border-black/[0.06] bg-white text-slate-500 shadow-sm transition hover:text-slate-950 sm:grid"
+            title="Ghi chú"
           >
-            <StickyNote className="w-4 h-4" />
+            <StickyNote className="h-4 w-4" />
           </button>
         </div>
       </div>
