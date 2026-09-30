@@ -39,10 +39,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
         .map((c) => VOCABULARY_LIST.find((v) => v.id === c.vocabId))
         .filter(Boolean) as VocabularyItem[];
 
-      const finalReview = reviewList.length >= 2 
-        ? reviewList.slice(0, 3) 
-        : VOCABULARY_LIST.slice(0, 3);
-      setVocabToReview(finalReview);
+      setVocabToReview(reviewList.slice(0, 3));
 
       // Pick 3 new words
       setNewVocab(VOCABULARY_LIST.slice(3, 6));
@@ -179,6 +176,12 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
               </div>
 
               <div className="space-y-3">
+                {vocabToReview.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
+                    <p className="text-sm font-bold text-slate-700">Hôm nay chưa có từ nào đến hạn ôn.</p>
+                    <p className="mt-1 text-xs text-slate-500">Khi bạn học và đánh giá flashcard, hệ thống sẽ tự lên lịch ôn lại.</p>
+                  </div>
+                )}
                 {vocabToReview.map((item) => (
                   <div
                     key={item.id}
@@ -474,7 +477,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
                   Hoàn thành 20 phút học hôm nay!
                 </h3>
                 <p className="text-sm text-slate-600 max-w-sm mx-auto">
-                  Bạn vừa hoàn thành xuất sắc chu kỳ Spaced Repetition, nạp 3 từ mới, củng cố ngữ pháp và luyện phản xạ nói.
+                  Bạn vừa hoàn thành phiên học: ôn {vocabToReview.length} từ đến hạn, nạp {newVocab.length} từ mới, củng cố ngữ pháp và luyện phản xạ nói.
                 </p>
               </div>
 
@@ -484,7 +487,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
                   <p className="text-[11px] text-slate-500">Phút học</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-blue-600">6</p>
+                  <p className="text-lg font-bold text-blue-600">{vocabToReview.length + newVocab.length}</p>
                   <p className="text-[11px] text-slate-500">Từ ôn & học</p>
                 </div>
                 <div>

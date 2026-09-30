@@ -164,18 +164,8 @@ class StorageService {
       console.error('Failed to load flashcards', e);
     }
 
-    // Initialize initial cards from vocabulary data
-    const initialCards: FlashcardItem[] = VOCABULARY_LIST.map((v) => ({
-      id: `fc_${v.id}`,
-      vocabId: v.id,
-      german: v.german,
-      article: v.article,
-      vietnamese: v.vietnamese,
-      repetitionBox: 1,
-      nextReviewDate: new Date().toISOString(),
-      intervalDays: 1,
-    }));
-    return initialCards;
+    // No card is due until the learner has actually reviewed/learned that word.
+    return [];
   }
 
   private saveFlashcards() {
@@ -340,11 +330,13 @@ class StorageService {
     } else {
       const nextDate = new Date();
       nextDate.setDate(nextDate.getDate() + days);
+      const vocab = VOCABULARY_LIST.find((item) => item.id === vocabId);
       this.flashcards.push({
         id: `fc_${vocabId}`,
         vocabId,
-        german: vocabId,
-        vietnamese: '',
+        german: vocab?.german || vocabId,
+        article: vocab?.article,
+        vietnamese: vocab?.vietnamese || '',
         repetitionBox: rating === 1 ? 1 : 2,
         intervalDays: days,
         nextReviewDate: nextDate.toISOString(),

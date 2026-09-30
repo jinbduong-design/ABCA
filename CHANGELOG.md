@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.6 — 2026-09-30
+- Sửa lỗi lần đầu mở app toàn bộ từ vựng đều bị tính là “đến hạn ôn”.
+- Flashcard SRS giờ chỉ được tạo khi người học thực sự đánh giá một từ.
+- Phiên học 20 phút không còn lấy 3 từ đầu danh sách để giả làm từ cần ôn; nếu chưa có lịch ôn sẽ hiển thị trạng thái trống rõ ràng.
+- Số từ ở màn tổng kết phiên học được tính theo dữ liệu thực tế.
+
 ## v0.0.5 — 2026-09-30
 - Nút đặt lại tiến độ giờ xóa đúng toàn bộ dữ liệu học cục bộ.
 - Xóa thêm phiên Deep Lesson đang dở, mastery của Deep Lesson và danh sách từ yêu thích.
