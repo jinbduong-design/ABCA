@@ -49,6 +49,25 @@ const ICON_MAP: Record<string, any> = {
   MessageCircle: MessageSquare,
 };
 
+const STARTER_ENGLISH: Record<string, string> = {
+  sc_meeting: "Hi! My name is Lukas. What's your name and where are you from?",
+  sc_a0_greeting: 'Hi! How are you?',
+  sc_a0_phone: "What's your phone number?",
+  sc_a0_cafe_simple: 'Hi! What would you like?',
+  sc_cafe: 'Hello! What can I get you?',
+  sc_restaurant: 'Good evening! Do you have a reservation or would you like a free table?',
+  sc_supermarket: 'Hello! Can I help you find something?',
+  sc_train_station: 'Hello! Where would you like to travel?',
+  sc_airport: 'Good morning! Your passport and flight ticket, please.',
+  sc_hotel: 'Good evening! Welcome to the hotel. Do you have a reservation?',
+  sc_directions: 'Excuse me, are you looking for something? Can I help you?',
+  sc_doctor: "Hello! What's wrong? Where are you in pain?",
+  sc_workplace: 'Hi! Do you have a moment? We need to talk about the new project.',
+  sc_making_friends: 'Hi! Feel free to sit with us. What do you usually do on weekends?',
+  sc_dating: 'Nice to see you! You look great today. How was your day?',
+  sc_daily: "Hey, how are you? The weather is really unpleasant today, isn't it?",
+};
+
 type PracticeMode = 'guided' | 'natural' | 'challenge';
 type LevelFilter = 'recommended' | LevelId;
 
@@ -70,21 +89,18 @@ interface SavedConversationSession {
 
 const SESSION_KEY = 'deutschstart_conversation_sessions_v1';
 
-const MODE_CONFIG: Record<
-  PracticeMode,
-  { label: string; description: string }
-> = {
+const MODE_CONFIG: Record<PracticeMode, { label: string; description: string }> = {
   guided: {
     label: 'Có hướng dẫn',
-    description: 'Có dịch, gợi ý và sửa 1 lỗi quan trọng.',
+    description: 'German + English. Có gợi ý khi bí.',
   },
   natural: {
     label: 'Tự nhiên',
-    description: 'Ít gợi ý hơn, hội thoại giống đời thật.',
+    description: 'Ít gợi ý hơn, vẫn có English ở dưới.',
   },
   challenge: {
     label: 'Thử thách',
-    description: 'Tự phản xạ trước, chỉ xem trợ giúp khi cần.',
+    description: 'Tự phản xạ trước, hỗ trợ khi cần.',
   },
 };
 
@@ -102,11 +118,8 @@ function clampProgress(value?: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-export const ConversationView: React.FC<ConversationViewProps> = ({
-  currentLevel,
-}) => {
-  const [selectedScenario, setSelectedScenario] =
-    useState<ConversationScenario | null>(null);
+export const ConversationView: React.FC<ConversationViewProps> = ({ currentLevel }) => {
+  const [selectedScenario, setSelectedScenario] = useState<ConversationScenario | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('guided');
@@ -114,13 +127,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showPhraseBank, setShowPhraseBank] = useState(true);
-  const [shownTranslations, setShownTranslations] = useState<Record<string, boolean>>({});
-  const [latestFeedback, setLatestFeedback] =
-    useState<ConversationResponse['microFeedback']>();
-  const [mission, setMission] =
-    useState<ConversationResponse['missionProgress']>();
-  const [recentSessions, setRecentSessions] =
-    useState<SavedConversationSession[]>(() => readSessions());
+  const [shownVietnamese, setShownVietnamese] = useState<Record<string, boolean>>({});
+  const [shownPhraseVietnamese, setShownPhraseVietnamese] = useState<Record<string, boolean>>({});
+  const [latestFeedback, setLatestFeedback] = useState<ConversationResponse['microFeedback']>();
+  const [mission, setMission] = useState<ConversationResponse['missionProgress']>();
+  const [recentSessions, setRecentSessions] = useState<SavedConversationSession[]>(() => readSessions());
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const recommendedScenario = useMemo(
@@ -137,9 +148,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       );
       return sameLevel.length ? sameLevel : CONVERSATION_SCENARIOS.slice(0, 4);
     }
-    return CONVERSATION_SCENARIOS.filter(
-      (scenario) => scenario.level === levelFilter
-    );
+    return CONVERSATION_SCENARIOS.filter((scenario) => scenario.level === levelFilter);
   }, [currentLevel, levelFilter]);
 
   const userTurns = useMemo(
@@ -150,8 +159,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const correctionCount = useMemo(
     () =>
       messages.filter(
-        (message) =>
-          message.sender === 'ai' && Boolean(message.correction?.hasMistake)
+        (message) => message.sender === 'ai' && Boolean(message.correction?.hasMistake)
       ).length,
     [messages]
   );
@@ -165,6 +173,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       id: 'msg_' + Date.now(),
       sender: 'ai',
       text: scenario.starterMessage,
+      translationEnglish: scenario.starterEnglish || STARTER_ENGLISH[scenario.id],
       translationVietnamese: scenario.starterTranslation,
       timestamp: new Date().toISOString(),
     };
@@ -176,11 +185,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     setMission({
       percent: 0,
       achieved: [],
-      nextMission: 'Trả lời câu mở đầu của nhân vật.',
+      nextMission: 'Trả lời câu mở đầu.',
       complete: false,
     });
-    setShownTranslations({});
-    setShowPhraseBank(practiceMode === 'guided');
+    setShownVietnamese({});
+    setShownPhraseVietnamese({});
+    setShowPhraseBank(practiceMode !== 'challenge');
     speechService.speak(scenario.starterMessage, practiceMode === 'guided' ? 0.82 : 0.95);
   };
 
@@ -218,28 +228,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
   const resetConversation = () => {
     if (!selectedScenario) return;
-    setMessages([
-      {
-        id: 'msg_' + Date.now(),
-        sender: 'ai',
-        text: selectedScenario.starterMessage,
-        translationVietnamese: selectedScenario.starterTranslation,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-    setInputText('');
-    setLatestFeedback(undefined);
-    setMission({
-      percent: 0,
-      achieved: [],
-      nextMission: 'Trả lời câu mở đầu của nhân vật.',
-      complete: false,
-    });
-    setShownTranslations({});
-    speechService.speak(
-      selectedScenario.starterMessage,
-      practiceMode === 'guided' ? 0.82 : 0.95
-    );
+    startScenario(selectedScenario);
   };
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -279,6 +268,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         id: 'ai_' + Date.now(),
         sender: 'ai',
         text: res.aiReply,
+        translationEnglish: res.aiReplyEnglish,
         translationVietnamese: res.aiReplyTranslation,
         correction: res.correction?.hasMistake ? res.correction : undefined,
         timestamp: new Date().toISOString(),
@@ -286,16 +276,15 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
       setMessages((current) => [...current, aiMessage]);
       setLatestFeedback(res.microFeedback);
+
       if (res.missionProgress) {
         setMission({
           ...res.missionProgress,
           percent: clampProgress(res.missionProgress.percent),
         });
       }
-      speechService.speak(
-        res.aiReply,
-        practiceMode === 'guided' ? 0.82 : 0.95
-      );
+
+      speechService.speak(res.aiReply, practiceMode === 'guided' ? 0.82 : 0.95);
       storageService.addStudyTime(1);
     } catch (error) {
       const message =
@@ -334,13 +323,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     );
   };
 
-  const toggleTranslation = (messageId: string) => {
-    setShownTranslations((current) => ({
-      ...current,
-      [messageId]: !current[messageId],
-    }));
-  };
-
   if (!selectedScenario) {
     return (
       <div className="mx-auto max-w-[1080px] px-3 pb-24 pt-4 sm:px-6 sm:pb-10 sm:pt-7 animate-fadeIn">
@@ -353,7 +335,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               Nói trong tình huống thật
             </h1>
             <p className="mt-2 hidden max-w-xl text-sm leading-6 text-slate-500 sm:block">
-              Mỗi phiên có mục tiêu cụ thể. AI giữ đúng vai, chỉ sửa một lỗi quan trọng và dẫn bạn đến khi hoàn thành tình huống.
+              Tiếng Đức ở trên, English ở dưới. Chỉ mở tiếng Việt khi thật sự cần.
             </p>
           </div>
           <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm ring-1 ring-black/[0.05]">
@@ -368,9 +350,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           <button
             type="button"
             onClick={() => startScenario(recommendedScenario)}
-            className="mt-5 flex w-full items-center gap-4 rounded-[24px] bg-slate-950 p-5 text-left text-white shadow-sm"
+            className="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-slate-950 p-5 text-left text-white"
           >
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400 text-slate-950">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-400 text-slate-950">
               <Play className="h-5 w-5 fill-current" />
             </span>
             <span className="min-w-0 flex-1">
@@ -379,9 +361,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               </span>
               <span className="mt-1 block truncate text-base font-black">
                 {recommendedScenario.titleVietnamese}
-              </span>
-              <span className="mt-1 hidden text-xs leading-5 text-slate-400 sm:block">
-                {recommendedScenario.goal}
               </span>
             </span>
             <span className="text-xs font-black text-slate-400">5–8 phút</span>
@@ -402,7 +381,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               type="button"
               onClick={() => setLevelFilter(value)}
               className={
-                'shrink-0 rounded-full px-3 py-2 text-xs font-black transition ' +
+                'shrink-0 rounded-full px-3 py-2 text-xs font-black ' +
                 (levelFilter === value
                   ? 'bg-amber-400 text-slate-950'
                   : 'bg-white text-slate-500 ring-1 ring-black/[0.06]')
@@ -415,14 +394,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
         <section className="mt-4">
           <div className="mb-3 flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-                Tình huống
-              </p>
-              <h2 className="mt-0.5 text-base font-black text-slate-950">
-                Chọn một việc bạn muốn nói được
-              </h2>
-            </div>
+            <h2 className="text-base font-black text-slate-950">
+              Chọn một việc bạn muốn nói được
+            </h2>
             <span className="text-[10px] font-bold text-slate-400">
               {visibleScenarios.length} bài
             </span>
@@ -436,7 +410,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   key={scenario.id}
                   type="button"
                   onClick={() => startScenario(scenario)}
-                  className="group rounded-[20px] border border-black/[0.06] bg-white p-4 text-left shadow-sm transition hover:border-amber-200"
+                  className="rounded-[18px] border border-black/[0.06] bg-white p-4 text-left transition hover:border-amber-200"
                 >
                   <div className="flex items-center justify-between">
                     <span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700">
@@ -452,14 +426,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                   <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
                     {scenario.goal}
                   </p>
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span className="text-[10px] font-bold text-slate-400">
-                      {scenario.category}
-                    </span>
-                    <span className="text-[10px] font-black text-amber-700">
-                      Luyện ngay →
-                    </span>
-                  </div>
                 </button>
               );
             })}
@@ -467,12 +433,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
         </section>
 
         {recentSessions.length > 0 && (
-          <section className="mt-6 rounded-[22px] border border-black/[0.06] bg-white p-4 shadow-sm">
+          <section className="mt-6 border-t border-slate-200 pt-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-600" />
               <h2 className="text-sm font-black text-slate-950">Phiên gần đây</h2>
             </div>
-            <div className="mt-3 divide-y divide-slate-100">
+            <div className="mt-2 divide-y divide-slate-100">
               {recentSessions.slice(0, 3).map((session) => {
                 const scenario = CONVERSATION_SCENARIOS.find(
                   (item) => item.id === session.scenarioId
@@ -493,12 +459,10 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
                         {session.title}
                       </span>
                       <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
-                        {session.turns} lượt · tiến độ {session.progress}%
+                        {session.turns} lượt · {session.progress}%
                       </span>
                     </span>
-                    <span className="text-[10px] font-black text-amber-700">
-                      Luyện lại
-                    </span>
+                    <span className="text-[10px] font-black text-amber-700">Luyện lại</span>
                   </button>
                 );
               })}
@@ -510,303 +474,302 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   }
 
   const missionPercent = clampProgress(mission?.percent);
-  const activeMode = MODE_CONFIG[practiceMode];
 
   return (
-    <div className="mx-auto max-w-4xl px-2 pb-[calc(72px+env(safe-area-inset-bottom))] pt-2 sm:px-6 sm:pb-8 sm:pt-5 animate-fadeIn">
-      <section
-        className="flex min-h-0 flex-col overflow-hidden rounded-[20px] border border-black/[0.06] bg-white shadow-sm sm:rounded-[24px]"
-        style={{
-          height:
-            'calc(100dvh - 142px - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
-          minHeight: '430px',
-        }}
-      >
-        <header className="shrink-0 border-b border-slate-100 bg-white">
-          <div className="flex items-center gap-2 px-2.5 py-2.5 sm:px-4 sm:py-3">
-            <button
-              onClick={leaveScenario}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"
-              aria-label="Quay lại"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+    <div className="flex h-[calc(100dvh-116px)] w-full flex-col overflow-hidden bg-white lg:h-[calc(100dvh-64px)] animate-fadeIn">
+      <header className="shrink-0 border-b border-slate-100 bg-white">
+        <div className="flex items-center gap-2 px-3 py-2.5 sm:px-5">
+          <button
+            onClick={leaveScenario}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"
+            aria-label="Quay lại"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-slate-950">
-                {selectedScenario.titleVietnamese}
-              </p>
-              <p className="truncate text-[10px] font-semibold text-slate-400">
-                {selectedScenario.aiRole} · lượt {userTurns}
-              </p>
-            </div>
-
-            <button
-              onClick={resetConversation}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400 hover:bg-slate-100"
-              aria-label="Bắt đầu lại"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black text-slate-950">
+              {selectedScenario.titleVietnamese}
+            </p>
+            <p className="truncate text-[10px] font-semibold text-slate-400">
+              {selectedScenario.aiRole} · lượt {userTurns}
+            </p>
           </div>
 
-          <div className="px-3 pb-3 sm:px-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2 text-[10px] font-bold text-slate-500">
-                <Target className="h-3.5 w-3.5 shrink-0 text-amber-700" />
-                <span className="truncate">
-                  {mission?.nextMission || selectedScenario.goal}
-                </span>
-              </div>
-              <span className="shrink-0 text-[10px] font-black text-slate-400">
-                {missionPercent}%
+          <button
+            onClick={resetConversation}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400"
+            aria-label="Bắt đầu lại"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-3 pb-2.5 sm:px-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2 text-[10px] font-bold text-slate-500">
+              <Target className="h-3.5 w-3.5 shrink-0 text-amber-700" />
+              <span className="truncate">
+                {mission?.nextMission || selectedScenario.goal}
               </span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-amber-400 transition-all duration-300"
-                style={{ width: String(missionPercent) + '%' }}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-1.5 overflow-x-auto border-t border-slate-100 bg-[#fafaf9] px-3 py-2">
-            {(Object.keys(MODE_CONFIG) as PracticeMode[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => {
-                  setPracticeMode(mode);
-                  if (mode === 'guided') setShowPhraseBank(true);
-                  if (mode === 'challenge') setShowPhraseBank(false);
-                }}
-                className={
-                  'shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black transition ' +
-                  (practiceMode === mode
-                    ? 'bg-slate-950 text-white'
-                    : 'bg-white text-slate-500 ring-1 ring-black/[0.05]')
-                }
-              >
-                {MODE_CONFIG[mode].label}
-              </button>
-            ))}
-            <span className="my-auto hidden text-[10px] font-semibold text-slate-400 sm:inline">
-              {activeMode.description}
+            <span className="shrink-0 text-[10px] font-black text-slate-400">
+              {missionPercent}%
             </span>
           </div>
-        </header>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-amber-400 transition-all"
+              style={{ width: String(missionPercent) + '%' }}
+            />
+          </div>
+        </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
-          {messages.map((message) => {
-            const isUser = message.sender === 'user';
-            const showTranslation =
-              practiceMode === 'guided' || shownTranslations[message.id];
+        <div className="flex gap-1.5 overflow-x-auto border-t border-slate-100 bg-[#fafaf9] px-3 py-2 sm:px-5">
+          {(Object.keys(MODE_CONFIG) as PracticeMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => {
+                setPracticeMode(mode);
+                setShowPhraseBank(mode !== 'challenge');
+              }}
+              className={
+                'shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black ' +
+                (practiceMode === mode
+                  ? 'bg-slate-950 text-white'
+                  : 'bg-white text-slate-500 ring-1 ring-black/[0.05]')
+              }
+            >
+              {MODE_CONFIG[mode].label}
+            </button>
+          ))}
+        </div>
+      </header>
 
-            return (
+      <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5">
+        {messages.map((message) => {
+          const isUser = message.sender === 'user';
+          const viOpen = shownVietnamese[message.id];
+
+          return (
+            <div
+              key={message.id}
+              className={'flex flex-col ' + (isUser ? 'items-end' : 'items-start')}
+            >
               <div
-                key={message.id}
-                className={'flex flex-col ' + (isUser ? 'items-end' : 'items-start')}
+                className={
+                  'max-w-[92%] px-3.5 py-2.5 text-sm leading-6 sm:max-w-[72%] ' +
+                  (isUser
+                    ? 'rounded-2xl rounded-br-md bg-slate-950 text-white'
+                    : 'border-l-2 border-amber-400 pl-3 text-slate-900')
+                }
               >
-                <div
-                  className={
-                    'max-w-[90%] rounded-[18px] px-3.5 py-2.5 text-sm leading-6 sm:max-w-[76%] ' +
-                    (isUser
-                      ? 'rounded-br-md bg-slate-950 text-white'
-                      : 'rounded-bl-md bg-[#f7f7f5] text-slate-900')
-                  }
-                >
-                  <div className="flex items-start gap-2.5">
-                    <p className="flex-1 font-semibold">{message.text}</p>
-                    <button
-                      onClick={() =>
-                        speechService.speak(
-                          message.text,
-                          practiceMode === 'guided' ? 0.82 : 0.95
-                        )
-                      }
-                      className="mt-0.5 shrink-0 text-slate-400"
-                      aria-label="Nghe câu"
-                    >
-                      <Volume2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                  {!isUser && message.translationVietnamese && showTranslation && (
-                    <p className="mt-2 border-t border-black/[0.06] pt-2 text-xs text-slate-500">
-                      {message.translationVietnamese}
-                    </p>
-                  )}
-
-                  {!isUser &&
-                    message.translationVietnamese &&
-                    practiceMode !== 'guided' && (
-                      <button
-                        type="button"
-                        onClick={() => toggleTranslation(message.id)}
-                        className="mt-2 text-[10px] font-black text-amber-700"
-                      >
-                        {shownTranslations[message.id] ? 'Ẩn nghĩa' : 'Cần dịch'}
-                      </button>
-                    )}
+                <div className="flex items-start gap-2.5">
+                  <p className="flex-1 font-semibold">{message.text}</p>
+                  <button
+                    onClick={() =>
+                      speechService.speak(
+                        message.text,
+                        practiceMode === 'guided' ? 0.82 : 0.95
+                      )
+                    }
+                    className="mt-0.5 shrink-0 text-slate-400"
+                    aria-label="Nghe câu"
+                  >
+                    <Volume2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
 
-                {message.correction && (
-                  <div className="mt-1.5 max-w-[88%] rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-slate-700 sm:max-w-[78%]">
-                    <p className="flex items-center gap-1.5 font-black text-amber-800">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      Sửa đúng 1 điểm
-                    </p>
-                    <p className="mt-1 font-black text-slate-950">
-                      {message.correction.better}
-                    </p>
-                    <p className="mt-0.5 text-slate-600">
-                      {message.correction.explanation}
-                    </p>
-                  </div>
+                {!isUser && message.translationEnglish && (
+                  <p className="mt-1.5 text-xs leading-5 text-slate-500">
+                    {message.translationEnglish}
+                  </p>
+                )}
+
+                {!isUser && message.translationVietnamese && (
+                  <>
+                    {viOpen && (
+                      <p className="mt-1.5 border-t border-slate-100 pt-1.5 text-xs leading-5 text-amber-800">
+                        {message.translationVietnamese}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShownVietnamese((current) => ({
+                          ...current,
+                          [message.id]: !current[message.id],
+                        }))
+                      }
+                      className="mt-1.5 text-[10px] font-black text-amber-700"
+                    >
+                      {viOpen ? 'Ẩn tiếng Việt' : 'Không hiểu? Xem tiếng Việt'}
+                    </button>
+                  </>
                 )}
               </div>
-            );
-          })}
 
-          {isLoading && (
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
-              {selectedScenario.aiRole} đang trả lời…
-            </div>
-          )}
-
-          {latestFeedback && !isLoading && (
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3">
-              <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-blue-700">
-                <Sparkles className="h-3.5 w-3.5" />
-                Sau lượt này
-              </p>
-              {latestFeedback.whatWentWell && (
-                <p className="mt-2 text-xs leading-5 text-blue-950">
-                  <span className="font-black">Làm được:</span>{' '}
-                  {latestFeedback.whatWentWell}
-                </p>
-              )}
-              {latestFeedback.oneFix && (
-                <p className="mt-1 text-xs leading-5 text-blue-950">
-                  <span className="font-black">Chỉnh 1 điểm:</span>{' '}
-                  {latestFeedback.oneFix}
-                </p>
-              )}
-              {latestFeedback.usefulPhrase && (
-                <p className="mt-1 text-xs leading-5 text-blue-950">
-                  <span className="font-black">Câu mang đi:</span>{' '}
-                  {latestFeedback.usefulPhrase}
-                </p>
-              )}
-            </div>
-          )}
-
-          {mission?.complete && !isLoading && (
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-700" />
-                <p className="text-sm font-black text-emerald-950">
-                  Mục tiêu tình huống đã hoàn thành
-                </p>
-              </div>
-              <p className="mt-1 text-xs leading-5 text-emerald-800">
-                Bạn có thể kết thúc để lưu phiên hoặc tiếp tục nói tự do.
-              </p>
-              <button
-                type="button"
-                onClick={leaveScenario}
-                className="mt-3 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white"
-              >
-                Kết thúc & lưu phiên
-              </button>
-            </div>
-          )}
-
-          <div ref={chatEndRef} />
-        </div>
-
-        <div className="shrink-0 border-t border-slate-100 bg-white">
-          {practiceMode !== 'challenge' && (
-            <div className="px-3 pt-2.5">
-              <button
-                type="button"
-                onClick={() => setShowPhraseBank((value) => !value)}
-                className="flex items-center gap-1.5 text-[10px] font-black text-slate-500"
-              >
-                <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
-                {showPhraseBank ? 'Ẩn gợi ý' : 'Bí thì xem câu gợi ý'}
-              </button>
-
-              {showPhraseBank && (
-                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                  {selectedScenario.suggestedPhrases.map((phrase) => (
-                    <button
-                      key={phrase.german}
-                      type="button"
-                      onClick={() => handleSendMessage(phrase.german)}
-                      disabled={isLoading}
-                      className="min-w-[190px] shrink-0 rounded-xl bg-[#f7f7f5] px-3 py-2 text-left ring-1 ring-black/[0.05]"
-                    >
-                      <span className="block text-xs font-black text-slate-900">
-                        {phrase.german}
-                      </span>
-                      {practiceMode === 'guided' && (
-                        <span className="mt-0.5 block text-[10px] leading-4 text-slate-500">
-                          {phrase.vietnamese}
-                        </span>
-                      )}
-                    </button>
-                  ))}
+              {message.correction && (
+                <div className="mt-2 max-w-[88%] border-l-2 border-blue-300 pl-3 text-xs leading-5 text-slate-600 sm:max-w-[72%]">
+                  <p className="flex items-center gap-1.5 font-black text-blue-700">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Sửa 1 điểm
+                  </p>
+                  <p className="mt-0.5 font-black text-slate-950">
+                    {message.correction.better}
+                  </p>
+                  <p className="mt-0.5">{message.correction.explanation}</p>
                 </div>
               )}
             </div>
-          )}
+          );
+        })}
 
-          <footer className="flex items-center gap-2 p-3">
+        {isLoading && (
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+            {selectedScenario.aiRole} đang trả lời…
+          </div>
+        )}
+
+        {latestFeedback && !isLoading && (
+          <div className="border-t border-slate-100 pt-3">
+            <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-blue-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              Sau lượt này
+            </p>
+            {latestFeedback.whatWentWell && (
+              <p className="mt-1.5 text-xs leading-5 text-slate-700">
+                <span className="font-black">Làm được:</span> {latestFeedback.whatWentWell}
+              </p>
+            )}
+            {latestFeedback.oneFix && (
+              <p className="mt-1 text-xs leading-5 text-slate-700">
+                <span className="font-black">Chỉnh:</span> {latestFeedback.oneFix}
+              </p>
+            )}
+            {latestFeedback.usefulPhrase && (
+              <p className="mt-1 text-xs leading-5 text-slate-700">
+                <span className="font-black">Câu mang đi:</span> {latestFeedback.usefulPhrase}
+              </p>
+            )}
+          </div>
+        )}
+
+        {mission?.complete && !isLoading && (
+          <div className="border-t border-emerald-100 pt-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+              <p className="text-sm font-black text-emerald-950">
+                Đã hoàn thành mục tiêu tình huống
+              </p>
+            </div>
             <button
-              onClick={handleToggleMic}
-              className={
-                'grid h-11 w-11 shrink-0 place-items-center rounded-xl ' +
-                (isListening
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-100 text-slate-600')
-              }
-              aria-label={isListening ? 'Dừng nghe' : 'Nói'}
+              type="button"
+              onClick={leaveScenario}
+              className="mt-3 rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-black text-white"
             >
-              {isListening ? (
-                <MicOff className="h-5 w-5" />
-              ) : (
-                <Mic className="h-5 w-5" />
-              )}
+              Kết thúc & lưu phiên
+            </button>
+          </div>
+        )}
+
+        <div ref={chatEndRef} />
+      </div>
+
+      <div className="shrink-0 border-t border-slate-100 bg-white">
+        {practiceMode !== 'challenge' && (
+          <div className="px-3 pt-2.5 sm:px-5">
+            <button
+              type="button"
+              onClick={() => setShowPhraseBank((value) => !value)}
+              className="flex items-center gap-1.5 text-[10px] font-black text-slate-500"
+            >
+              <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+              {showPhraseBank ? 'Ẩn gợi ý' : 'Bí thì xem gợi ý'}
             </button>
 
-            <input
-              value={inputText}
-              onChange={(event) => setInputText(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') handleSendMessage();
-              }}
-              disabled={isLoading}
-              placeholder={
-                practiceMode === 'guided'
-                  ? 'Gõ hoặc nói câu tiếng Đức…'
-                  : 'Trả lời bằng tiếng Đức…'
-              }
-              className="min-h-11 min-w-0 flex-1 rounded-xl bg-[#f7f7f5] px-3.5 text-sm font-medium outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-amber-400"
-            />
+            {showPhraseBank && (
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {selectedScenario.suggestedPhrases.map((phrase) => {
+                  const viOpen = shownPhraseVietnamese[phrase.german];
+                  return (
+                    <div
+                      key={phrase.german}
+                      className="min-w-[185px] shrink-0 rounded-xl bg-[#f7f7f5] px-3 py-2 ring-1 ring-black/[0.05]"
+                    >
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={() => handleSendMessage(phrase.german)}
+                        className="block w-full text-left text-xs font-black text-slate-900"
+                      >
+                        {phrase.german}
+                      </button>
+                      {phrase.english && (
+                        <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
+                          {phrase.english}
+                        </p>
+                      )}
+                      {viOpen && (
+                        <p className="mt-1 text-[10px] leading-4 text-amber-800">
+                          {phrase.vietnamese}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShownPhraseVietnamese((current) => ({
+                            ...current,
+                            [phrase.german]: !current[phrase.german],
+                          }))
+                        }
+                        className="mt-1 text-[9px] font-black text-amber-700"
+                      >
+                        {viOpen ? 'Ẩn Việt' : 'Việt'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
-            <button
-              onClick={() => handleSendMessage()}
-              disabled={!inputText.trim() || isLoading}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-500 text-slate-950 disabled:opacity-30"
-              aria-label="Gửi"
-            >
-              <Send className="h-5 w-5" />
-            </button>
-          </footer>
-        </div>
-      </section>
+        <footer className="flex items-center gap-2 px-3 py-2.5 sm:px-5">
+          <button
+            onClick={handleToggleMic}
+            className={
+              'grid h-11 w-11 shrink-0 place-items-center rounded-xl ' +
+              (isListening ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-600')
+            }
+            aria-label={isListening ? 'Dừng nghe' : 'Nói'}
+          >
+            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </button>
+
+          <input
+            value={inputText}
+            onChange={(event) => setInputText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') handleSendMessage();
+            }}
+            disabled={isLoading}
+            placeholder="Nói hoặc gõ tiếng Đức…"
+            className="min-h-11 min-w-0 flex-1 rounded-xl bg-[#f7f7f5] px-3.5 text-sm font-medium outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-amber-400"
+          />
+
+          <button
+            onClick={() => handleSendMessage()}
+            disabled={!inputText.trim() || isLoading}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-500 text-slate-950 disabled:opacity-30"
+            aria-label="Gửi"
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        </footer>
+      </div>
     </div>
   );
 };
