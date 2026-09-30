@@ -4,9 +4,11 @@ import {
   UserNote, 
   FlashcardItem, 
   VocabStatus,
-  MistakeCategory
+  MistakeCategory,
+  LevelId
 } from '../types';
 import { VOCABULARY_LIST } from '../data/vocabularyData';
+import { COURSES_DATA } from '../data/coursesData';
 
 const STORAGE_KEYS = {
   PROGRESS: 'deutschstart_progress_v2',
@@ -14,6 +16,18 @@ const STORAGE_KEYS = {
   NOTES: 'deutschstart_notes_v2',
   FLASHCARDS: 'deutschstart_flashcards_v2',
 };
+
+function deriveCurrentLevel(completedLessons: string[]): LevelId {
+  const completed = new Set(completedLessons || []);
+  const levelComplete = (level: LevelId) =>
+    COURSES_DATA[level].topics
+      .flatMap((topic) => topic.lessons)
+      .every((lesson) => completed.has(lesson.id));
+
+  if (!levelComplete('A0')) return 'A0';
+  if (!levelComplete('A1')) return 'A1';
+  return 'A2';
+}
 
 const DEFAULT_PROGRESS: UserProgress = {
   userId: 'user_local_1',
@@ -67,12 +81,14 @@ class StorageService {
       const data = localStorage.getItem(STORAGE_KEYS.PROGRESS);
       if (data) {
         const parsed = JSON.parse(data);
+        const completedLessons = parsed.completedLessons ?? parsed.completedLessonIds ?? [];
         return {
           ...DEFAULT_PROGRESS,
           ...parsed,
+          currentLevel: deriveCurrentLevel(completedLessons),
           streakDays: parsed.streakDays ?? parsed.streak ?? 0,
           totalStudyMinutes: parsed.totalStudyMinutes ?? parsed.totalStudyTimeMinutes ?? 0,
-          completedLessons: parsed.completedLessons ?? parsed.completedLessonIds ?? [],
+          completedLessons,
         };
       }
     } catch (e) {
@@ -221,6 +237,7 @@ class StorageService {
       this.progress.todayLessonsCompleted += 1;
       this.progress.wordsLearned += 5;
     }
+    this.progress.currentLevel = deriveCurrentLevel(this.progress.completedLessons);
     this.saveProgress();
   }
 
