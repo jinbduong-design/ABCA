@@ -108,17 +108,15 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
   const primaryLesson: Lesson | null = nextLessonInfo?.lesson || null;
 
   return (
-    <div className="mx-auto max-w-[1080px] px-4 pb-28 pt-5 sm:px-6 sm:pt-8 lg:pb-10 animate-fadeIn">
-      <header className="mb-5">
+    <div className="mobile-focus-scroll mx-auto max-w-[1080px] px-3 pb-24 pt-4 sm:px-6 sm:pb-28 sm:pt-8 lg:pb-10 animate-fadeIn">
+      <header className="mb-3 sm:mb-5">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
           {isBrandNew ? 'Bắt đầu từ đây' : 'Hôm nay'}
         </p>
-        <h1 className="mt-1 max-w-2xl text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">
-          {isBrandNew
-            ? 'Mới học tiếng Đức? Bạn chỉ cần bắt đầu bài đầu tiên.'
-            : 'Học tiếp đúng bài của bạn — không cần tự chọn nội dung.'}
+        <h1 className="mt-1 max-w-2xl text-xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">
+          {isBrandNew ? 'Bắt đầu bài đầu tiên' : 'Tiếp tục bài đang học'}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+        <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-slate-500 sm:block">
           {isBrandNew
             ? 'DeutschStart sẽ tự dẫn theo thứ tự A0 → A1 → A2. Từ vựng, ngữ pháp, luyện tập và nói đều nằm trong từng bài.'
             : 'App tự chọn bài tiếp theo dựa trên tiến độ. Các tab khác chỉ là công cụ hỗ trợ khi bạn cần.'}
@@ -143,11 +141,11 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
             <h2 className="mt-1.5 max-w-2xl text-2xl font-black leading-tight tracking-[-0.025em] sm:text-[32px]">
               {primaryLesson.titleVietnamese}
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+            <p className="mt-2 hidden max-w-xl text-sm leading-6 text-slate-400 sm:block">
               {primaryLesson.description}
             </p>
 
-            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <div className="mt-5 hidden gap-2 sm:grid sm:grid-cols-3">
               <div className="rounded-2xl bg-white/[0.06] p-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">01 · Học</p>
                 <p className="mt-1 text-xs font-bold text-white">Từ mới + kiến thức chính</p>
@@ -168,12 +166,12 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
               className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 text-sm font-black text-slate-950 transition hover:bg-amber-300 sm:w-auto"
             >
               <Play className="h-4 w-4 fill-current" />
-              {isBrandNew ? 'Bắt đầu bài đầu tiên' : 'Tiếp tục học'}
+              {isBrandNew ? 'Bắt đầu' : 'Tiếp tục'}
               <span className="font-bold opacity-60">· {primaryLesson.estimatedMinutes} phút</span>
             </button>
 
             {isBrandNew && (
-              <p className="mt-3 text-xs font-semibold text-slate-500">
+              <p className="mt-3 hidden text-xs font-semibold text-slate-500 sm:block">
                 Không cần vào Từ vựng hay Ngữ pháp trước. Cứ hoàn thành bài này theo thứ tự.
               </p>
             )}
@@ -181,13 +179,13 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
         </section>
       )}
 
-      <section className="mt-5 grid gap-3 lg:grid-cols-[1.45fr_0.75fr]">
+      <section className="mt-4 grid gap-3 sm:mt-5 lg:grid-cols-[1.45fr_0.75fr]">
         <div className="rounded-[24px] border border-black/[0.06] bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-amber-700" />
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Kế hoạch hôm nay</p>
-              <h2 className="mt-0.5 text-lg font-black text-slate-950">Chỉ làm theo 3 bước này</h2>
+              <p className="hidden text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 sm:block">Kế hoạch hôm nay</p>
+              <h2 className="text-base font-black text-slate-950 sm:mt-0.5 sm:text-lg">3 bước hôm nay</h2>
             </div>
           </div>
 
@@ -199,7 +197,7 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">1</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-slate-950">Học bài chính</p>
-                <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">
+                <p className="mt-0.5 hidden truncate text-xs font-semibold text-slate-500 sm:block">
                   {primaryLesson?.titleVietnamese || 'Bài tiếp theo'} · khoảng {primaryLesson?.estimatedMinutes || 10} phút
                 </p>
               </div>
@@ -213,7 +211,7 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-slate-500 ring-1 ring-black/[0.06]">2</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-slate-900">Ôn từ</p>
-                <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                <p className="mt-0.5 hidden text-xs font-semibold text-slate-500 sm:block">
                   {reviewCards.length > 0
                     ? reviewCards.length + ' từ đang đến hạn · khoảng 3 phút'
                     : isBrandNew
@@ -231,7 +229,7 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-slate-500 ring-1 ring-black/[0.06]">3</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black text-slate-900">Nói lại một chút</p>
-                <p className="mt-0.5 text-xs font-semibold text-slate-500">Luyện phản xạ khoảng 2 phút sau khi học</p>
+                <p className="mt-0.5 hidden text-xs font-semibold text-slate-500 sm:block">Luyện phản xạ khoảng 2 phút sau khi học</p>
               </div>
               <MessageCircle className="h-4 w-4 text-emerald-600" />
             </button>
@@ -263,14 +261,14 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
 
           <button
             onClick={onOpenDailySession}
-            className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-black/[0.07] px-3 text-xs font-black text-slate-600 hover:bg-slate-50"
+            className="mt-3 hidden min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-black/[0.07] px-3 text-xs font-black text-slate-600 hover:bg-slate-50 sm:inline-flex"
           >
             <Clock3 className="h-4 w-4" />Phiên học 20 phút
           </button>
         </div>
       </section>
 
-      <section className="mt-7">
+      <section className="mt-7 hidden sm:block">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Công cụ phụ</p>
@@ -305,7 +303,7 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
         </div>
       </section>
 
-      <section className="mt-5 rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm">
+      <section className="mt-5 hidden rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm sm:block">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
@@ -336,7 +334,7 @@ export const DailyDashboard: React.FC<DailyDashboardProps> = ({
 
       <button
         onClick={() => onNavigate('learn')}
-        className="mt-4 flex w-full items-center justify-between rounded-[20px] border border-black/[0.06] bg-white px-5 py-4 text-left shadow-sm"
+        className="mt-4 hidden w-full items-center justify-between rounded-[20px] border border-black/[0.06] bg-white px-5 py-4 text-left shadow-sm sm:flex"
       >
         <span className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700">
