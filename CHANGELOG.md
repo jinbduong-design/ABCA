@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.9 — 2026-09-30
+- Hoàn thành lesson không còn cộng cứng 5 phút và 5 từ.
+- Thời gian học lấy từ `lesson.estimatedMinutes`; số từ học mới lấy từ danh sách vocabulary thật của lesson.
+- Deep Lesson bỏ lần cộng bù thời gian cũ để tránh đếm trùng sau khi chuyển sang metric thật.
+- Học lại một lesson vẫn cộng thời gian luyện tập, nhưng không cộng lại số từ và số bài đã hoàn thành.
+- Version hiển thị trong app tăng đồng bộ lên v0.0.9.
+
 ## v0.0.8 — 2026-09-30
 - Daily Session lấy từ mới và ngữ pháp theo đúng level hiện tại thay vì nội dung cố định.
 - Từ mới loại trừ các từ đã vào SRS; sau khi hoàn thành phiên, các từ mới được lên lịch ôn lại vào ngày hôm sau.

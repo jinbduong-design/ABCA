@@ -466,8 +466,6 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
     if (passed && !masterySaved) {
       storageService.completeLesson(lesson.id, overall);
-      const extraMinutes = Math.max(0, (lesson.estimatedMinutes || 5) - 5);
-      if (extraMinutes > 0) storageService.addStudyTime(extraMinutes);
       setMasterySaved(true);
     }
 

@@ -29,6 +29,13 @@ function deriveCurrentLevel(completedLessons: string[]): LevelId {
   return 'A2';
 }
 
+function findLessonById(lessonId: string) {
+  return Object.values(COURSES_DATA)
+    .flatMap((course) => course.topics)
+    .flatMap((topic) => topic.lessons)
+    .find((lesson) => lesson.id === lessonId);
+}
+
 const DEFAULT_PROGRESS: UserProgress = {
   userId: 'user_local_1',
   currentLevel: 'A0',
@@ -221,11 +228,17 @@ class StorageService {
   }
 
   public completeLesson(lessonId: string, score: number = 100) {
-    this.addStudyTime(5);
+    const lesson = findLessonById(lessonId);
+    const studyMinutes = Math.max(1, lesson?.estimatedMinutes || 5);
+    const lessonWordCount = new Set(
+      (lesson?.stepLearn?.vocabItems || []).map((item) => item.id)
+    ).size;
+
+    this.addStudyTime(studyMinutes);
     if (!this.progress.completedLessons.includes(lessonId)) {
       this.progress.completedLessons.push(lessonId);
       this.progress.todayLessonsCompleted += 1;
-      this.progress.wordsLearned += 5;
+      this.progress.wordsLearned += lessonWordCount;
     }
     this.progress.currentLevel = deriveCurrentLevel(this.progress.completedLessons);
     this.saveProgress();
