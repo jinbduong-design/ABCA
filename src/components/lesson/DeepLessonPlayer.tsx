@@ -590,26 +590,48 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                  Mục tiêu bài học
+                  {beginnerGuided ? 'Dành cho người mới' : 'Mục tiêu bài học'}
                 </p>
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
-                  Sau bài này, bạn thực sự làm được gì?
+                  {beginnerGuided
+                    ? 'Không cần biết gì trước. Cứ làm từng bước.'
+                    : 'Sau bài này, bạn thực sự làm được gì?'}
                 </h1>
               </div>
 
               <div className={panelClass}>
-                <div className="space-y-4">
-                  {deep.objectives.map((objective) => (
-                    <div key={objective.id} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
-                        <Target className="h-4 w-4" />
-                      </span>
-                      <p className="text-sm font-semibold leading-relaxed text-slate-800">
-                        {objective.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {beginnerGuided ? (
+                  <div className="space-y-3">
+                    {[
+                      'Nghe mẫu trước.',
+                      'Nhìn nghĩa và quy tắc thật ngắn.',
+                      'Thử vài câu. Không biết thì bấm xem đáp án.',
+                    ].map((item, index) => (
+                      <div key={item} className="flex items-center gap-3">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-amber-100 text-xs font-black text-amber-800">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm font-bold text-slate-800">{item}</p>
+                      </div>
+                    ))}
+                    <p className="pt-1 text-xs leading-5 text-slate-500">
+                      Không cần học thuộc ngay. Mục tiêu đầu tiên là nghe quen và hiểu ý.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deep.objectives.map((objective) => (
+                      <div key={objective.id} className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                          <Target className="h-4 w-4" />
+                        </span>
+                        <p className="text-sm font-semibold leading-relaxed text-slate-800">
+                          {objective.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {resume && resume.stage !== 'goal' ? (
@@ -684,7 +706,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                     Học từ & mẫu · {vocab.length ? itemIndex + 1 : 0}/{vocab.length}
                   </p>
                   <h2 className="mt-2 text-xl font-black text-slate-950">
-                    Nhìn → nghe → tự nhớ
+                    {beginnerGuided ? 'Nghe → nhìn nghĩa → đọc theo' : 'Nhìn → nghe → tự nhớ'}
                   </h2>
                 </div>
               </div>
@@ -709,7 +731,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                       </p>
                     ) : null}
 
-                    <div className="mt-5 flex justify-center gap-2">
+                    <div className="mt-5 flex flex-wrap justify-center gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -725,13 +747,32 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                         <Volume2 className="h-4 w-4" />
                         Nghe
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowMeaning((p) => !p)}
-                        className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-extrabold text-slate-950"
-                      >
-                        {showMeaning ? 'Ẩn nghĩa' : 'Tự nhớ rồi xem nghĩa'}
-                      </button>
+                      {beginnerGuided ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            speechService.speak(
+                              vocab[itemIndex]?.article &&
+                                vocab[itemIndex]?.article !== 'none'
+                                ? `${vocab[itemIndex].article} ${vocab[itemIndex].german}`
+                                : vocab[itemIndex]?.german || '',
+                              0.65
+                            )
+                          }
+                          className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-extrabold text-amber-900"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                          Nghe chậm
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowMeaning((p) => !p)}
+                          className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-extrabold text-slate-950"
+                        >
+                          {showMeaning ? 'Ẩn nghĩa' : 'Tự nhớ rồi xem nghĩa'}
+                        </button>
+                      )}
                     </div>
 
                     {showMeaning ? (
@@ -766,7 +807,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setShowMeaning(false);
+                      setShowMeaning(beginnerGuided);
                       setItemIndex((p) => p - 1);
                     }}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700"
@@ -779,7 +820,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   disabled={vocab.length > 0 && !showMeaning}
                   onClick={() => {
                     if (vocab.length && itemIndex + 1 < vocab.length) {
-                      setShowMeaning(false);
+                      setShowMeaning(beginnerGuided);
                       setItemIndex((p) => p + 1);
                       persist('learn', itemIndex + 1, 0);
                     } else {
@@ -801,7 +842,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Micro concept · {itemIndex + 1}/{deep.concepts.length}
+                  Quy tắc · {itemIndex + 1}/{deep.concepts.length}
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
                   {currentConcept.title}
@@ -823,17 +864,27 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   {currentConcept.examples.map((example, idx) => (
                     <div
                       key={`${example.german}-${idx}`}
-                      className="rounded-xl bg-slate-50 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-3"
                     >
-                      <p className="font-bold text-slate-950">{example.german}</p>
-                      <p className="mt-0.5 text-sm text-slate-500">
-                        {example.vietnamese}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-950">{example.german}</p>
+                        <p className="mt-0.5 text-sm text-slate-500">
+                          {example.vietnamese}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speechService.speak(example.german, beginnerGuided ? 0.72 : 0.9)}
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-slate-600 ring-1 ring-black/[0.05]"
+                        aria-label={`Nghe ${example.german}`}
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
 
-                {currentConcept.trap ? (
+                {!beginnerGuided && currentConcept.trap ? (
                   <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
                     <p className="text-xs font-black uppercase tracking-wide text-rose-700">
                       Bẫy dễ sai
@@ -855,11 +906,12 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
               {currentCheckpoint ? (
                 <div className={panelClass}>
                   <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-amber-700">
-                    Kiểm tra ngay
+                    {beginnerGuided ? 'Thử 1 câu · không biết cũng không sao' : 'Kiểm tra ngay'}
                   </p>
                   <ExerciseRenderer
                     key={currentCheckpoint.id}
                     exercise={currentCheckpoint}
+                    beginnerHelp={beginnerGuided}
                     onResolved={(ok) =>
                       finishUnscoredExercise(currentCheckpoint, ok)
                     }
