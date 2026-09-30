@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.0.8 — 2026-09-30
+- Daily Session lấy từ mới và ngữ pháp theo đúng level hiện tại thay vì nội dung cố định.
+- Từ mới loại trừ các từ đã vào SRS; sau khi hoàn thành phiên, các từ mới được lên lịch ôn lại vào ngày hôm sau.
+- Bước ôn SRS có nút Khó / Ổn / Dễ và cập nhật lịch ôn thật thay vì chỉ hiển thị từ.
+- Bài phản xạ lấy trực tiếp từ grammar rule của phiên; câu luyện nói cũng thay đổi theo nội dung hôm đó.
+- Số từ đã học trong progress chỉ tăng theo số từ mới thực tế, không còn cộng cứng 8 từ.
+- Version hiển thị trong app tăng đồng bộ lên v0.0.8.
+
 ## v0.0.7 — 2026-09-30
 - Hiển thị version hiện tại trực tiếp trên thanh đầu của app để kiểm tra nhanh bản đang chạy.
 - Thêm nguồn version dùng chung trong `src/version.ts`; từ các bản sau version hiển thị và `package.json` sẽ được tăng cùng nhau.

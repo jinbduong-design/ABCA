@@ -231,9 +231,9 @@ class StorageService {
     this.saveProgress();
   }
 
-  public completeDailyStudySession() {
+  public completeDailyStudySession(newWordsLearned: number = 0) {
     this.addStudyTime(20);
-    this.progress.wordsLearned += 8;
+    this.progress.wordsLearned += Math.max(0, newWordsLearned);
     this.saveProgress();
   }
 

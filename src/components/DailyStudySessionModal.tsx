@@ -4,7 +4,7 @@ import { storageService } from '../services/storageService';
 import { speechService } from '../services/speechService';
 import { VOCABULARY_LIST } from '../data/vocabularyData';
 import { GRAMMAR_LIBRARY } from '../data/grammarData';
-import { VocabularyItem, GrammarLesson } from '../types';
+import { VocabularyItem, GrammarLesson, Exercise, LevelId } from '../types';
 
 interface DailyStudySessionModalProps {
   isOpen: boolean;
@@ -21,34 +21,74 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
   const [vocabToReview, setVocabToReview] = useState<VocabularyItem[]>([]);
   const [newVocab, setNewVocab] = useState<VocabularyItem[]>([]);
   const [grammarRule, setGrammarRule] = useState<GrammarLesson | null>(null);
+  const [sessionLevel, setSessionLevel] = useState<LevelId>('A0');
+  const [reviewedCount, setReviewedCount] = useState(0);
   
   // Practice Step State
+  const [practiceQuestion, setPracticeQuestion] = useState<Exercise | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [practiceFeedback, setPracticeFeedback] = useState<{ correct: boolean; message: string } | null>(null);
 
   // Speaking Step State
+  const [speakingTarget, setSpeakingTarget] = useState<{ sentence: string; translation: string } | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const [speechScore, setSpeechScore] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Pick 3 words for review (or random if none in review)
+      const progress = storageService.getProgress();
+      const currentLevel = progress.currentLevel || 'A0';
+      const dailySeed = Math.floor(new Date().setHours(0, 0, 0, 0) / 86400000);
+      setSessionLevel(currentLevel);
+
+      // Review words follow the real SRS queue, including older levels.
       const reviewCards = storageService.getCardsDueForReview();
       const reviewList = reviewCards
         .map((c) => VOCABULARY_LIST.find((v) => v.id === c.vocabId))
         .filter(Boolean) as VocabularyItem[];
-
       setVocabToReview(reviewList.slice(0, 3));
 
-      // Pick 3 new words
-      setNewVocab(VOCABULARY_LIST.slice(3, 6));
+      // New words come from the learner's current level and exclude words already in SRS.
+      const scheduledIds = new Set(storageService.getFlashcards().map((card) => card.vocabId));
+      const unseenLevelVocab = VOCABULARY_LIST.filter(
+        (item) => item.level === currentLevel && !scheduledIds.has(item.id)
+      );
+      const newWords = unseenLevelVocab.length
+        ? unseenLevelVocab
+            .map((_, index) => unseenLevelVocab[(dailySeed + index) % unseenLevelVocab.length])
+            .slice(0, 3)
+        : [];
+      setNewVocab(newWords);
 
-      // Pick a fundamental grammar rule
-      setGrammarRule(GRAMMAR_LIBRARY[0]);
+      // Grammar and the practice question rotate daily inside the current CEFR level.
+      const levelGrammar = GRAMMAR_LIBRARY
+        .filter((rule) => rule.level === currentLevel)
+        .sort((a, b) => a.order - b.order);
+      const selectedGrammar = levelGrammar.length
+        ? levelGrammar[dailySeed % levelGrammar.length]
+        : GRAMMAR_LIBRARY[0] || null;
+      setGrammarRule(selectedGrammar);
 
-      // Reset state
+      const selectedPractice =
+        selectedGrammar?.practiceQuestions.find(
+          (question) => Array.isArray(question.options) && question.options.length > 0
+        ) || null;
+      setPracticeQuestion(selectedPractice);
+
+      const grammarExample = selectedGrammar?.examples?.[0];
+      const vocabExample = newWords.find((item) => item.exampleSentence);
+      setSpeakingTarget(
+        grammarExample
+          ? { sentence: grammarExample.german, translation: grammarExample.vietnamese }
+          : vocabExample
+          ? { sentence: vocabExample.exampleSentence, translation: vocabExample.exampleTranslation }
+          : { sentence: 'Ich lerne jeden Tag Deutsch.', translation: 'Tôi học tiếng Đức mỗi ngày.' }
+      );
+
+      // Reset session-only state.
       setStep(1);
+      setReviewedCount(0);
       setSelectedAnswer(null);
       setPracticeFeedback(null);
       setSpeechScore(null);
@@ -66,20 +106,28 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
       setSpeechScore(null);
       setRecognizedText('');
     } else if (step === 5) {
-      // Finish session. completeDailyStudySession() already records 20 study minutes.
-      storageService.completeDailyStudySession();
+      // Newly learned words enter SRS and become due again tomorrow.
+      newVocab.forEach((item) => storageService.updateFlashcardReview(item.id, 1));
+      storageService.completeDailyStudySession(newVocab.length);
       setStep(6);
     }
   };
 
-  const handlePracticeChoice = (option: string, correct: string) => {
+  const handleReviewRating = (vocabId: string, rating: 1 | 2 | 3 | 4) => {
+    storageService.updateFlashcardReview(vocabId, rating);
+    setVocabToReview((current) => current.filter((item) => item.id !== vocabId));
+    setReviewedCount((count) => count + 1);
+  };
+
+  const handlePracticeChoice = (option: string, correct: string, explanation?: string) => {
     setSelectedAnswer(option);
     const isCorrect = option.toLowerCase() === correct.toLowerCase();
+    const detail = explanation ? ` ${explanation}` : '';
     setPracticeFeedback({
       correct: isCorrect,
       message: isCorrect
-        ? 'Xuất sắc! Bạn đã chọn chính xác.'
-        : `Chưa đúng. Đáp án chuẩn là: "${correct}".`,
+        ? `Chính xác!${detail}`
+        : `Chưa đúng. Đáp án chuẩn là: "${correct}".${detail}`,
     });
   };
 
@@ -92,7 +140,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
 
     setIsListening(true);
     setRecognizedText('Đang lắng nghe...');
-    const targetSentence = 'Ich lerne jeden Tag Deutsch.';
+    const targetSentence = speakingTarget?.sentence || 'Ich lerne jeden Tag Deutsch.';
 
     speechService.startSpeechRecognition(
       (text) => {
@@ -122,9 +170,14 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
               ⚡
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base sm:text-lg">
-                Phiên học hàng ngày 20 phút
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                  Phiên học hàng ngày 20 phút
+                </h3>
+                <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-200">
+                  {sessionLevel}
+                </span>
+              </div>
               <p className="text-xs text-slate-500">
                 {step === 6
                   ? 'Hoàn thành phiên học!'
@@ -178,47 +231,60 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
               <div className="space-y-3">
                 {vocabToReview.length === 0 && (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
-                    <p className="text-sm font-bold text-slate-700">Hôm nay chưa có từ nào đến hạn ôn.</p>
-                    <p className="mt-1 text-xs text-slate-500">Khi bạn học và đánh giá flashcard, hệ thống sẽ tự lên lịch ôn lại.</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {reviewedCount > 0 ? 'Đã ôn xong các từ đến hạn.' : 'Hôm nay chưa có từ nào đến hạn ôn.'}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {reviewedCount > 0
+                        ? 'Lịch ôn tiếp theo đã được cập nhật theo mức độ bạn vừa chọn.'
+                        : 'Các từ đã học sẽ tự xuất hiện ở đây khi đến lịch ôn.'}
+                    </p>
                   </div>
                 )}
                 {vocabToReview.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between"
+                    className="p-4 bg-slate-50 rounded-2xl border border-slate-200"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {item.article && item.article !== 'none' && (
-                          <span className="text-xs px-2 py-0.5 rounded font-bold uppercase bg-blue-100 text-blue-700">
-                            {item.article}
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {item.article && item.article !== 'none' && (
+                            <span className="text-xs px-2 py-0.5 rounded font-bold uppercase bg-blue-100 text-blue-700">
+                              {item.article}
+                            </span>
+                          )}
+                          <span className="font-bold text-slate-900 text-lg">
+                            {item.german}
                           </span>
-                        )}
-                        <span className="font-bold text-slate-900 text-lg">
-                          {item.german}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-slate-700 mt-0.5">
-                        {item.vietnamese}
-                      </p>
-                      {item.exampleSentence && (
-                        <p className="text-xs text-slate-500 italic mt-1">
-                          VD: {item.exampleSentence}
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 mt-0.5">
+                          {item.vietnamese}
                         </p>
-                      )}
+                        {item.exampleSentence && (
+                          <p className="text-xs text-slate-500 italic mt-1">
+                            VD: {item.exampleSentence}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() =>
+                          speechService.speak(
+                            item.article && item.article !== 'none'
+                              ? `${item.article} ${item.german}`
+                              : item.german
+                          )
+                        }
+                        className="p-3 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-600 rounded-xl border border-slate-200 shadow-sm transition-colors"
+                      >
+                        <Volume2 className="w-5 h-5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() =>
-                        speechService.speak(
-                          item.article && item.article !== 'none'
-                            ? `${item.article} ${item.german}`
-                            : item.german
-                        )
-                      }
-                      className="p-3 bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-600 rounded-xl border border-slate-200 shadow-sm transition-colors"
-                    >
-                      <Volume2 className="w-5 h-5" />
-                    </button>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <button onClick={() => handleReviewRating(item.id, 1)} className="rounded-lg bg-red-50 px-2 py-2 text-[11px] font-bold text-red-700 hover:bg-red-100">Khó · 1 ngày</button>
+                      <button onClick={() => handleReviewRating(item.id, 3)} className="rounded-lg bg-amber-50 px-2 py-2 text-[11px] font-bold text-amber-700 hover:bg-amber-100">Ổn · 4 ngày</button>
+                      <button onClick={() => handleReviewRating(item.id, 4)} className="rounded-lg bg-emerald-50 px-2 py-2 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100">Dễ · 7 ngày</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -239,6 +305,12 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
               </div>
 
               <div className="space-y-3">
+                {newVocab.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
+                    <p className="text-sm font-bold text-slate-700">Không còn từ mới ở {sessionLevel} trong danh sách hiện tại.</p>
+                    <p className="mt-1 text-xs text-slate-500">Phiên hôm nay sẽ tập trung vào ôn tập, ngữ pháp và luyện nói.</p>
+                  </div>
+                )}
                 {newVocab.map((item) => (
                   <div
                     key={item.id}
@@ -346,47 +418,56 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
             <div className="space-y-4 animate-fadeIn">
               <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
                 <h4 className="font-bold text-emerald-900 text-sm">
-                  Luyện phản xạ nhanh
+                  Luyện phản xạ nhanh · {sessionLevel}
                 </h4>
                 <p className="text-xs text-emerald-800 mt-1">
-                  Chọn đáp án đúng nhất để hoàn thiện câu sau:
+                  Bài tập lấy trực tiếp từ quy tắc ngữ pháp của phiên hôm nay.
                 </p>
               </div>
 
-              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
-                <p className="font-bold text-slate-900 text-base text-center">
-                  "Guten Tag! Wie _______ Sie?"
-                </p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {['heißen', 'heißt', 'heiße', 'heißst'].map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => handlePracticeChoice(opt, 'heißen')}
-                      className={`p-3 rounded-xl font-bold text-sm border transition-all ${
-                        selectedAnswer === opt
-                          ? opt === 'heißen'
-                            ? 'bg-emerald-600 text-white border-emerald-600'
-                            : 'bg-red-600 text-white border-red-600'
-                          : 'bg-white text-slate-800 border-slate-200 hover:border-amber-500'
+              {practiceQuestion ? (
+                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                  <p className="font-bold text-slate-900 text-base text-center">
+                    {practiceQuestion.question}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {(practiceQuestion.options || []).map((opt) => {
+                      const correct = String(practiceQuestion.correctAnswer);
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => handlePracticeChoice(opt, correct, practiceQuestion.explanation)}
+                          className={`p-3 rounded-xl font-bold text-sm border transition-all ${
+                            selectedAnswer === opt
+                              ? opt.toLowerCase() === correct.toLowerCase()
+                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                : 'bg-red-600 text-white border-red-600'
+                              : 'bg-white text-slate-800 border-slate-200 hover:border-amber-500'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {practiceFeedback && (
+                    <div
+                      className={`p-3 rounded-xl text-xs font-semibold ${
+                        practiceFeedback.correct
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {opt}
-                    </button>
-                  ))}
+                      {practiceFeedback.message}
+                    </div>
+                  )}
                 </div>
-
-                {practiceFeedback && (
-                  <div
-                    className={`p-3 rounded-xl text-xs font-semibold ${
-                      practiceFeedback.correct
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {practiceFeedback.message}
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm font-semibold text-slate-500">
+                  Chưa có bài trắc nghiệm phù hợp cho quy tắc hôm nay.
+                </div>
+              )}
             </div>
           )}
 
@@ -405,19 +486,19 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
               <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-4">
                 <div className="space-y-1">
                   <span className="text-xs font-mono text-amber-700 bg-amber-100/70 px-2.5 py-0.5 rounded-full">
-                    [Ikh lehr-nuh yeh-den Tahk Doytsh]
+                    {sessionLevel} · câu luyện theo nội dung hôm nay
                   </span>
                   <h3 className="font-bold text-slate-900 text-xl">
-                    "Ich lerne jeden Tag Deutsch."
+                    "{speakingTarget?.sentence || 'Ich lerne jeden Tag Deutsch.'}"
                   </h3>
                   <p className="text-sm text-slate-600">
-                    Tôi học tiếng Đức mỗi ngày.
+                    {speakingTarget?.translation || 'Tôi học tiếng Đức mỗi ngày.'}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-center gap-3">
                   <button
-                    onClick={() => speechService.speak('Ich lerne jeden Tag Deutsch.')}
+                    onClick={() => speechService.speak(speakingTarget?.sentence || 'Ich lerne jeden Tag Deutsch.')}
                     className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-sm flex items-center gap-2 text-xs"
                   >
                     <Volume2 className="w-4 h-4 text-amber-600" /> Nghe mẫu
@@ -477,7 +558,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
                   Hoàn thành 20 phút học hôm nay!
                 </h3>
                 <p className="text-sm text-slate-600 max-w-sm mx-auto">
-                  Bạn vừa hoàn thành phiên học: ôn {vocabToReview.length} từ đến hạn, nạp {newVocab.length} từ mới, củng cố ngữ pháp và luyện phản xạ nói.
+                  Bạn vừa hoàn thành phiên {sessionLevel}: ôn {reviewedCount} từ đến hạn, nạp {newVocab.length} từ mới, củng cố ngữ pháp và luyện phản xạ nói.
                 </p>
               </div>
 
@@ -487,7 +568,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
                   <p className="text-[11px] text-slate-500">Phút học</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-blue-600">{vocabToReview.length + newVocab.length}</p>
+                  <p className="text-lg font-bold text-blue-600">{reviewedCount + newVocab.length}</p>
                   <p className="text-[11px] text-slate-500">Từ ôn & học</p>
                 </div>
                 <div>
