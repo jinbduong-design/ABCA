@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.1 — 2026-09-30
+- Thêm Export toàn bộ dữ liệu cá nhân DeutschStart ra file JSON.
+- Thêm Import/Khôi phục từ file JSON với xác nhận trước khi ghi đè dữ liệu hiện tại.
+- Backup tự gom toàn bộ localStorage thuộc DeutschStart, gồm progress, SRS, mistakes, notes, favorites, Deep Lesson session/mastery và các key tương lai cùng namespace.
+- Sau khi restore, app nạp lại dữ liệu để mọi màn hình đồng bộ.
+- Version hiển thị trong app tăng lên v0.1.1.
+
 ## v0.1.0 — 2026-09-30
 - Hoàn thiện bộ nhận diện DeutschStart cho web và màn hình điện thoại.
 - Thêm logo DE đồng bộ với giao diện, wordmark, icon 192px, 512px và maskable icon cho Android.
