@@ -20,12 +20,12 @@ interface BottomNavProps {
 const primaryTabs = [
   { id: 'home', label: 'Học', icon: Home },
   { id: 'learn', label: 'Lộ trình', icon: BookOpen },
+  { id: 'conversation', label: 'Hội thoại', icon: MessageSquare },
   { id: 'vocab', label: 'Ôn từ', icon: Layers },
 ];
 
 const moreTabs = [
   { id: 'tutor', label: 'AI Tutor', icon: Bot },
-  { id: 'conversation', label: 'Hội thoại', icon: MessageSquare },
   { id: 'grammar', label: 'Ngữ pháp', icon: BookOpen },
   { id: 'mistakes', label: 'Lỗi sai', icon: AlertCircle },
   { id: 'progress', label: 'Tiến độ', icon: BarChart3 },
@@ -105,7 +105,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       )}
 
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] bg-white/[0.97] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid h-[60px] max-w-lg grid-cols-4 px-2">
+        <div className="mx-auto grid h-[60px] max-w-lg grid-cols-5 px-1">
           {primaryTabs.map((tab) => {
             const Icon = tab.icon;
             const active = currentView === tab.id;

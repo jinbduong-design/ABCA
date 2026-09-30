@@ -230,7 +230,17 @@ Hãy trả lời học viên theo các quy tắc trên:`;
 
 // AI Conversation Roleplay endpoint
 app.post("/api/conversation/message", async (req, res) => {
-  const { scenarioTitle, scenarioContext, userMessage, history } = req.body;
+  const {
+    scenarioTitle,
+    scenarioContext,
+    scenarioGoal,
+    userLevel = "A0",
+    practiceMode = "guided",
+    suggestedPhrases = [],
+    turnNumber = 1,
+    userMessage,
+    history,
+  } = req.body;
 
   const ai = getGeminiClient();
   if (!ai) {
@@ -241,37 +251,75 @@ app.post("/api/conversation/message", async (req, res) => {
   }
 
   try {
-    const prompt = `Bạn là đối tác hội thoại người Đức bản xứ trong tình huống đóng vai thực tế: "${scenarioTitle}".
-Bối cảnh: ${scenarioContext}
+    const modeRule =
+      practiceMode === "guided"
+        ? "CHẾ ĐỘ CÓ HƯỚNG DẪN: Mỗi lượt chỉ dùng 1 câu tiếng Đức ngắn, ưu tiên A0/A1. Luôn cho bản dịch Việt và một gợi ý trả lời rất ngắn."
+        : practiceMode === "challenge"
+        ? "CHẾ ĐỘ THỬ THÁCH: Hội thoại tự nhiên hơn, không chủ động cho gợi ý trừ khi học viên thật sự bí. Vẫn chỉ sửa 1 lỗi quan trọng nhất."
+        : "CHẾ ĐỘ TỰ NHIÊN: Dùng 1-2 câu tiếng Đức tự nhiên, vừa sức. Chỉ cho gợi ý khi có ích.";
 
-Nhiệm vụ của bạn:
-1. Đóng vai đối tác giao tiếp (Ví dụ: Bồi bàn, Nhân viên bán hàng, Người qua đường, Bác sĩ, v.v.).
-2. Trả lời bằng tiếng Đức đơn giản, tự nhiên, chuẩn A0-A2 phù hợp với người mới học.
-3. Phân tích câu nói tiếng Đức của người học:
-   - Sửa lỗi ngữ pháp, trật tự từ, quán từ hoặc từ vựng nếu có.
-   - Đưa ra phiên bản chuẩn và tự nhiên hơn.
-   - Giải thích ngắn gọn bằng tiếng Việt vì sao sửa.
-4. Đưa ra 1 câu gợi ý bằng tiếng Việt/tiếng Đức để người học biết cách trả lời tiếp nếu bị bí từ.
+    const phraseBank = Array.isArray(suggestedPhrases)
+      ? suggestedPhrases
+          .slice(0, 6)
+          .map((phrase: any) => `${phrase?.german || ""} = ${phrase?.vietnamese || ""}`)
+          .join("\n")
+      : "";
 
-Lịch sử trò chuyện:
+    const prompt = `Bạn là đối tác hội thoại người Đức bản xứ và đồng thời là người hướng dẫn giao tiếp cho người Việt mới học tiếng Đức.
+
+TÌNH HUỐNG: "${scenarioTitle}"
+BỐI CẢNH: ${scenarioContext}
+MỤC TIÊU PHIÊN: ${scenarioGoal || "Duy trì một hội thoại ngắn phù hợp tình huống."}
+TRÌNH ĐỘ NGƯỜI HỌC: ${userLevel}
+LƯỢT NGƯỜI HỌC HIỆN TẠI: ${turnNumber}
+${modeRule}
+
+NGÂN HÀNG CÂU GỢI Ý THAM KHẢO:
+${phraseBank || "(không có)"}
+
+NGUYÊN TẮC BẮT BUỘC:
+1. ĐÓNG VAI thật, không biến câu trả lời thành bài giảng.
+2. Mỗi lượt AI chỉ nên có 1 câu hỏi hoặc 1 phản hồi chính để người học biết phải trả lời gì tiếp.
+3. Ưu tiên câu ngắn, từ vựng thông dụng, đúng mức ${userLevel}. Không tự nâng độ khó quá nhanh.
+4. Nếu câu người học hiểu được nhưng chưa tự nhiên, chỉ sửa MỘT lỗi quan trọng nhất. Không liệt kê hàng loạt lỗi.
+5. Nếu người học viết đúng hoặc đủ hiểu, correction.hasMistake phải là false.
+6. Phản hồi học tập phải cụ thể: nói rõ một điểm họ vừa làm được và tối đa một điểm cần sửa.
+7. missionProgress phải dựa trên nội dung hội thoại thật, không tự cho hoàn thành. Chỉ complete=true khi mục tiêu tình huống đã thực sự được xử lý.
+8. percent phải từ 0-100 và tăng hợp lý theo tiến triển; không tăng chỉ vì số lượt.
+9. nextMission phải là hành động tiếp theo rất cụ thể, ví dụ "Nói tên của bạn", "Hỏi giá", "Xin hóa đơn".
+10. usefulPhrase chỉ đưa 1 cụm thực dụng có thể tái sử dụng ngay.
+
+LỊCH SỬ:
 ${(history || [])
-  .slice(-6)
-  .map((h: { sender: string; text: string }) => `${h.sender === "user" ? "User" : "AI"}: ${h.text}`)
+  .slice(-10)
+  .map((h: { sender: string; text: string }) => `${h.sender === "user" ? "Học viên" : "Đối tác"}: ${h.text}`)
   .join("\n")}
 
-Tin nhắn mới của User: "${userMessage}"
+TIN NHẮN MỚI CỦA HỌC VIÊN:
+"${userMessage}"
 
-Trả về định dạng JSON DUY NHẤT theo cấu trúc:
+Trả về JSON DUY NHẤT:
 {
-  "aiReply": "câu trả lời tiếng Đức của nhân vật",
-  "aiReplyTranslation": "dịch nghĩa tiếng Việt câu của AI",
+  "aiReply": "1-2 câu tiếng Đức của nhân vật",
+  "aiReplyTranslation": "bản dịch tiếng Việt ngắn",
   "correction": {
     "hasMistake": boolean,
     "original": "${userMessage}",
-    "better": "câu tiếng Đức sửa chuẩn và tự nhiên hơn",
-    "explanation": "giải thích ngắn bằng tiếng Việt"
+    "better": "phiên bản tốt hơn; nếu không sai có thể giữ nguyên",
+    "explanation": "một giải thích ngắn bằng tiếng Việt"
   },
-  "vietnameseHint": "gợi ý câu trả lời tiếp theo cho học viên kèm tiếng Đức và tiếng Việt"
+  "vietnameseHint": "một gợi ý trả lời tiếp theo; để rỗng nếu chế độ không cần",
+  "microFeedback": {
+    "whatWentWell": "một điểm cụ thể vừa làm tốt",
+    "oneFix": "tối đa một điểm nên sửa; để rỗng nếu không cần",
+    "usefulPhrase": "một cụm tiếng Đức thực dụng + nghĩa Việt"
+  },
+  "missionProgress": {
+    "percent": number,
+    "achieved": ["những mục tiêu nhỏ đã thực sự đạt"],
+    "nextMission": "việc cụ thể nên làm ở lượt tiếp theo",
+    "complete": boolean
+  }
 }`;
 
     const text = await generateWithModelFallback(ai, {

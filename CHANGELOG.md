@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.6 — 2026-09-30
+- Đưa Hội thoại ra tab chính trên mobile: Học · Lộ trình · Hội thoại · Ôn từ · Thêm.
+- Làm lại màn Hội thoại theo hướng luyện giao tiếp có mục tiêu thay vì chỉ là cửa sổ chat.
+- Thêm 3 chế độ: Có hướng dẫn, Tự nhiên và Thử thách; mức trợ giúp và bản dịch thay đổi theo chế độ.
+- Mỗi phiên có thanh tiến độ mục tiêu, nhiệm vụ tiếp theo và trạng thái hoàn thành dựa trên nội dung hội thoại thật do AI đánh giá.
+- AI giữ vai trong tình huống, mỗi lượt chỉ phản hồi ngắn và chỉ sửa một lỗi quan trọng để tránh quá tải.
+- Sau mỗi lượt có micro-feedback: điểm vừa làm tốt, một điểm cần sửa và một cụm câu thực dụng để mang đi.
+- Thêm ngân hàng câu gợi ý có thể bấm dùng ngay, nghe lại từng câu và mở bản dịch khi cần.
+- Thêm lịch sử phiên hội thoại gần đây lưu local để luyện lại; dữ liệu thuộc namespace DeutschStart nên đi cùng cơ chế backup hiện có.
+- Bổ sung các tình huống A0 rất ngắn: chào hỏi 30 giây, nói số điện thoại và gọi một đồ uống đơn giản.
+- Màn chọn tình huống ưu tiên đúng trình độ hiện tại và có bộ lọc A0/A1/A2.
+- Version hiển thị và service worker cache tăng lên v0.2.6.
+
 ## v0.2.5 — 2026-09-30
 - Khóa zoom in/out trên mobile/PWA bằng viewport cố định: maximum-scale=1 và user-scalable=no.
 - Chặn pinch zoom trên thiết bị cảm ứng bằng CSS touch-action và listener gesture/touch đa điểm.
