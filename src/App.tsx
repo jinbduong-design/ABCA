@@ -28,10 +28,17 @@ export default function App() {
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [notesTarget, setNotesTarget] = useState<{ id?: string; title?: string }>({});
   const [isDailySessionOpen, setIsDailySessionOpen] = useState(false);
-  const [mistakesCount, setMistakesCount] = useState(0);
+  const [mistakesCount, setMistakesCount] = useState(() => storageService.getMistakes().length);
+
+  const refreshProgress = () => {
+    const p = storageService.getProgress();
+    setProgress(p);
+    setMistakesCount(storageService.getMistakes().length);
+  };
 
   useEffect(() => {
     refreshProgress();
+    return storageService.subscribe(refreshProgress);
   }, []);
 
   useEffect(() => {
@@ -45,12 +52,6 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const refreshProgress = () => {
-    const p = storageService.getProgress();
-    setProgress(p);
-    setMistakesCount(storageService.getMistakes().length);
-  };
 
   const handleStartLesson = (lessonId: string) => {
     let found: Lesson | null = null;
