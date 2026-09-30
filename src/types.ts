@@ -264,15 +264,17 @@ export interface ConversationScenario {
   aiRole: string;
   userRole?: string;
   starterMessage: string;
+  starterEnglish?: string;
   starterTranslation: string;
   goal: string;
-  suggestedPhrases: { german: string; vietnamese: string }[];
+  suggestedPhrases: { german: string; english?: string; vietnamese: string }[];
 }
 
 export interface ConversationMessage {
   id: string;
   sender: 'user' | 'ai' | 'system';
   text: string;
+  translationEnglish?: string;
   translationVietnamese?: string;
   translation?: string;
   correction?: {

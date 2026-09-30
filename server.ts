@@ -13,7 +13,10 @@ app.use(express.json({ limit: "10mb" }));
 
 // Lazy initialize Gemini client
 function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
     return null;
   }
@@ -30,9 +33,9 @@ function getGeminiClient(): GoogleGenAI | null {
 // Gemini candidate models in order of preference according to AI Studio guidelines.
 // gemini-3.1-flash-lite is highly available and fast, preventing 503 high-demand spikes.
 const CANDIDATE_MODELS = [
-  "gemini-3.1-flash-lite",
   "gemini-3.8-flash",
-  "gemini-flash-latest",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
 ];
 
 interface GenerateOptions {
@@ -301,14 +304,16 @@ TIN NHẮN MỚI CỦA HỌC VIÊN:
 Trả về JSON DUY NHẤT:
 {
   "aiReply": "1-2 câu tiếng Đức của nhân vật",
-  "aiReplyTranslation": "bản dịch tiếng Việt ngắn",
+  "aiReplyEnglish": "bản dịch tiếng Anh ngắn, tự nhiên",
+  "aiReplyTranslation": "bản dịch tiếng Việt chỉ dùng làm fallback",
   "correction": {
     "hasMistake": boolean,
     "original": "${userMessage}",
     "better": "phiên bản tốt hơn; nếu không sai có thể giữ nguyên",
     "explanation": "một giải thích ngắn bằng tiếng Việt"
   },
-  "vietnameseHint": "một gợi ý trả lời tiếp theo; để rỗng nếu chế độ không cần",
+  "englishHint": "một gợi ý trả lời tiếp theo bằng tiếng Anh",
+  "vietnameseHint": "bản tiếng Việt chỉ dùng làm fallback khi người học bấm xem",
   "microFeedback": {
     "whatWentWell": "một điểm cụ thể vừa làm tốt",
     "oneFix": "tối đa một điểm nên sửa; để rỗng nếu không cần",

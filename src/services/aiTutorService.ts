@@ -5,6 +5,7 @@ export interface TutorChatResponse {
 
 export interface ConversationResponse {
   aiReply: string;
+  aiReplyEnglish?: string;
   aiReplyTranslation?: string;
   correction?: {
     hasMistake: boolean;
@@ -12,6 +13,7 @@ export interface ConversationResponse {
     better: string;
     explanation: string;
   };
+  englishHint?: string;
   vietnameseHint?: string;
   microFeedback?: {
     whatWentWell?: string;
@@ -82,7 +84,7 @@ export async function sendConversationMessage(params: {
   scenarioGoal: string;
   userLevel: string;
   practiceMode: 'guided' | 'natural' | 'challenge';
-  suggestedPhrases: { german: string; vietnamese: string }[];
+  suggestedPhrases: { german: string; english?: string; vietnamese: string }[];
   turnNumber: number;
   userMessage: string;
   history: { sender: string; text: string }[];
