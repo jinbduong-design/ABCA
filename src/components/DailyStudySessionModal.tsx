@@ -69,8 +69,7 @@ export const DailyStudySessionModal: React.FC<DailyStudySessionModalProps> = ({
       setSpeechScore(null);
       setRecognizedText('');
     } else if (step === 5) {
-      // Finish session
-      storageService.addStudyTime(20);
+      // Finish session. completeDailyStudySession() already records 20 study minutes.
       storageService.completeDailyStudySession();
       setStep(6);
     }
