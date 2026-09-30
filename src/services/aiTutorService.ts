@@ -34,6 +34,27 @@ export interface WritingCorrectionResponse {
   keyTips: string[];
 }
 
+async function requestAI<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    let message = 'AI đang tạm thời không khả dụng. Hãy thử lại sau.';
+    try {
+      const payload = await res.json();
+      if (payload?.message) message = payload.message;
+    } catch {
+      // Keep the clear default message when the server did not return JSON.
+    }
+    throw new Error(message);
+  }
+
+  return await res.json();
+}
+
 export async function askAITutor(params: {
   message: string;
   mode: string;
@@ -41,33 +62,7 @@ export async function askAITutor(params: {
   userLevel?: string;
   topic?: string;
 }): Promise<TutorChatResponse> {
-  try {
-    const res = await fetch('/api/tutor/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTP error ${res.status}`);
-    }
-
-    return await res.json();
-  } catch (error: any) {
-    console.warn('AI Tutor API fallback used:', error);
-    return {
-      reply: `🇩🇪 [Gia sư Tiếng Đức]: Cảm ơn bạn! Mình đã nhận được câu hỏi: "${params.message}".
-Vì chưa kết nối trực tiếp với máy chủ AI, mình xin chia sẻ mẹo học trọng tâm:
-
-1. **Vị trí động từ**: Trong câu trần thuật, động từ luôn ở vị trí số 2 (Ví dụ: "Heute lerne ich Deutsch").
-2. **Quán từ 3 giống**: 
-   - 🟦 **der** (đực - der Tisch, der Mann)
-   - 🟥 **die** (cái - die Frau, die Schule, đuôi -ung, -heit)
-   - 🟩 **das** (trung - das Haus, das Kind, đuôi -chen)
-3. Hãy luyện phát âm chuẩn bảng chữ cái và các cặp nguyên âm "ei" [ai], "ie" [i dài] nhé!`,
-      suggestedNext: 'Luyện chia động từ sein & haben',
-    };
-  }
+  return requestAI<TutorChatResponse>('/api/tutor/chat', params);
 }
 
 export async function sendConversationMessage(params: {
@@ -76,55 +71,11 @@ export async function sendConversationMessage(params: {
   userMessage: string;
   history: { sender: string; text: string }[];
 }): Promise<ConversationResponse> {
-  try {
-    const res = await fetch('/api/conversation/message', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTP error ${res.status}`);
-    }
-
-    return await res.json();
-  } catch (error: any) {
-    console.warn('Conversation API fallback used:', error);
-    return {
-      aiReply: 'Das klingt wunderbar! Vielen Dank für die Information.',
-      aiReplyTranslation: 'Nghe tuyệt vời quá! Cảm ơn bạn về thông tin.',
-      correction: {
-        hasMistake: false,
-        original: params.userMessage,
-        better: params.userMessage,
-        explanation: 'Câu nói của bạn rất tự nhiên và chính xác!',
-      },
-      vietnameseHint: 'Gợi ý: Bạn có thể nói "Auf Wiedersehen und einen schönen Tag!" (Tạm biệt và chúc một ngày tốt lành!)',
-    };
-  }
+  return requestAI<ConversationResponse>('/api/conversation/message', params);
 }
 
 export async function analyzeGermanSentence(sentence: string): Promise<any> {
-  try {
-    const res = await fetch('/api/tutor/analyze-sentence', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sentence }),
-    });
-    if (!res.ok) throw new Error('Failed to analyze');
-    return await res.json();
-  } catch (e) {
-    return {
-      original: sentence,
-      corrected: sentence,
-      isCorrect: true,
-      vietnameseTranslation: 'Bản phân tích ngữ pháp nhanh',
-      grammarBreakdown: [
-        { component: sentence, role: 'Cấu trúc câu', explanation: 'Động từ ở vị trí số 2.' },
-      ],
-      notes: 'Hãy chú ý chia động từ theo chủ ngữ.',
-    };
-  }
+  return requestAI('/api/tutor/analyze-sentence', { sentence });
 }
 
 export async function correctGermanWriting(params: {
@@ -132,42 +83,5 @@ export async function correctGermanWriting(params: {
   userText: string;
   level?: string;
 }): Promise<WritingCorrectionResponse> {
-  try {
-    const res = await fetch('/api/tutor/correct-writing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-
-    if (!res.ok) throw new Error('Failed to evaluate writing');
-    return await res.json();
-  } catch (e) {
-    console.warn('Writing Corrector fallback used:', e);
-    return {
-      score: 88,
-      cefrLevel: params.level || 'A1',
-      overallFeedback: 'Bài viết rất đáng khen! Bạn đã hoàn thành tốt các ý chính của bức thư. Hãy lưu ý viết hoa các danh từ và nhớ chia động từ ở ngôi thứ hai/thứ ba.',
-      correctedVersion: params.userText.trim(),
-      sentenceCorrections: [
-        {
-          original: params.userText.split('\n')[0] || params.userText,
-          corrected: params.userText.split('\n')[0] || params.userText,
-          explanation: 'Mở đầu thư chuẩn xác.',
-          hasError: false,
-        },
-      ],
-      vocabularySuggestions: [
-        {
-          original: 'Ich möchte',
-          better: 'Ich würde gerne',
-          reason: 'Biểu đạt lịch sự và tự nhiên hơn trong thư tín trang trọng.',
-        },
-      ],
-      keyTips: [
-        'Mở đầu thư thân mật: Liebe/Lieber [Tên], | Trang trọng: Sehr geehrte Damen und Herren,',
-        'Sau lời chào có dấu phẩy, chữ cái đầu dòng tiếp theo viết thường.',
-        'Kết thư: Herzliche Grüße (thân mật) | Mit freundlichen Grüßen (trang trọng).',
-      ],
-    };
-  }
+  return requestAI<WritingCorrectionResponse>('/api/tutor/correct-writing', params);
 }

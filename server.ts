@@ -181,7 +181,10 @@ app.post("/api/tutor/chat", async (req, res) => {
 
   const ai = getGeminiClient();
   if (!ai) {
-    return res.json(getFallbackTutorReply(message, mode));
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
+    });
   }
 
   try {
@@ -217,9 +220,11 @@ Hãy trả lời học viên theo các quy tắc trên:`;
 
     res.json({ reply: reply || "🇩🇪 Wunderbar! Bạn có thể tiếp tục đặt câu hỏi nhé." });
   } catch (error: any) {
-    console.warn("Falling back to built-in tutor response due to API load:", error?.message);
-    // Return resilient fallback so the user's study session is uninterrupted
-    res.json(getFallbackTutorReply(message, mode));
+    console.warn("AI request unavailable:", error?.message);
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
+    });
   }
 });
 
@@ -229,16 +234,9 @@ app.post("/api/conversation/message", async (req, res) => {
 
   const ai = getGeminiClient();
   if (!ai) {
-    return res.json({
-      aiReply: "Sehr gut! Das habe ich verstanden. Möchten Sie noch etwas bestellen?",
-      aiReplyTranslation: "Rất tốt! Tôi đã hiểu rồi. Bạn có muốn gọi thêm gì không?",
-      correction: {
-        hasMistake: false,
-        original: userMessage || "",
-        better: userMessage || "",
-        explanation: "Câu của bạn rất tốt và tự nhiên trong tình huống này!",
-      },
-      vietnameseHint: "Bạn có thể nói: 'Nein danke, das ist alles.' (Không, cảm ơn, bấy nhiêu là đủ rồi.)",
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
     });
   }
 
@@ -285,17 +283,10 @@ Trả về định dạng JSON DUY NHẤT theo cấu trúc:
     const parsed = JSON.parse(text || "{}");
     res.json(parsed);
   } catch (error: any) {
-    console.warn("Conversation fallback used due to API load:", error?.message);
-    res.json({
-      aiReply: "Das klingt wunderbar! Vielen Dank für die Information.",
-      aiReplyTranslation: "Nghe tuyệt vời quá! Cảm ơn bạn về câu trả lời.",
-      correction: {
-        hasMistake: false,
-        original: userMessage || "",
-        better: userMessage || "",
-        explanation: "Câu của bạn rất dễ hiểu và phù hợp ngữ cảnh!",
-      },
-      vietnameseHint: "Bạn có thể nói: 'Vielen Dank, einen schönen Tag noch!' (Cảm ơn nhiều, chúc một ngày tốt lành!)",
+    console.warn("AI request unavailable:", error?.message);
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
     });
   }
 });
@@ -309,15 +300,9 @@ app.post("/api/tutor/analyze-sentence", async (req, res) => {
 
   const ai = getGeminiClient();
   if (!ai) {
-    return res.json({
-      original: sentence,
-      corrected: sentence,
-      isCorrect: true,
-      vietnameseTranslation: "Phân tích câu tiếng Đức cơ bản",
-      grammarBreakdown: [
-        { component: sentence, role: "Cấu trúc câu", explanation: "Động từ ở vị trí số 2." },
-      ],
-      notes: "Hãy lưu ý viết hoa danh từ và chia động từ theo đúng chủ ngữ.",
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
     });
   }
 
@@ -351,17 +336,10 @@ Hãy trả về JSON theo schema:
     const parsed = JSON.parse(text || "{}");
     res.json(parsed);
   } catch (error: any) {
-    console.warn("Sentence analysis fallback used:", error?.message);
-    res.json({
-      original: sentence,
-      corrected: sentence,
-      isCorrect: true,
-      vietnameseTranslation: "Câu tiếng Đức của bạn",
-      grammarBreakdown: [
-        { component: sentence, role: "Cụm câu", explanation: "Động từ luôn đứng ở vị trí số 2 trong câu trần thuật." },
-      ],
-      pronunciationGuide: "Phát âm theo quy tắc bảng chữ cái tiếng Đức",
-      notes: "Hãy luôn viết hoa chữ cái đầu của danh từ.",
+    console.warn("AI request unavailable:", error?.message);
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
     });
   }
 });
@@ -375,31 +353,9 @@ app.post("/api/tutor/correct-writing", async (req, res) => {
 
   const ai = getGeminiClient();
   if (!ai) {
-    return res.json({
-      score: 85,
-      cefrLevel: level,
-      overallFeedback: "Bài viết mạch lạc, bố cục rõ ràng theo chuẩn thư tiếng Đức. Hãy chú ý chia động từ và viết hoa danh từ đúng quy tắc.",
-      correctedVersion: userText.trim(),
-      sentenceCorrections: [
-        {
-          original: userText.trim().split("\n")[0] || userText,
-          corrected: userText.trim().split("\n")[0] || userText,
-          explanation: "Mở đầu thư đúng văn phong.",
-          hasError: false,
-        },
-      ],
-      vocabularySuggestions: [
-        {
-          original: "gut",
-          better: "ausgezeichnet",
-          reason: "Giúp bài viết biểu cảm và ấn tượng hơn.",
-        },
-      ],
-      keyTips: [
-        "Luôn mở đầu thư thân mật bằng: Liebe/Lieber [Tên],",
-        "Sau dấu phẩy ở lời chào, từ đầu tiên của câu tiếp theo phải viết thường.",
-        "Kết thư thân mật bằng: Viele Grüße / Herzliche Grüße.",
-      ],
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
     });
   }
 
@@ -451,31 +407,10 @@ Trả về JSON DUY NHẤT theo schema sau:
     const parsed = JSON.parse(text || "{}");
     res.json(parsed);
   } catch (error: any) {
-    console.warn("Writing evaluation fallback used:", error?.message);
-    res.json({
-      score: 85,
-      cefrLevel: level,
-      overallFeedback: "Bài viết hoàn thành tốt các yêu cầu giao tiếp. Hãy tiếp tục chú ý vị trí động từ và viết hoa danh từ.",
-      correctedVersion: userText.trim(),
-      sentenceCorrections: [
-        {
-          original: userText.trim().split("\n")[0] || userText,
-          corrected: userText.trim().split("\n")[0] || userText,
-          explanation: "Lời chào đúng chuẩn văn phong tiếng Đức.",
-          hasError: false,
-        },
-      ],
-      vocabularySuggestions: [
-        {
-          original: "Ich möchte",
-          better: "Ich würde gerne",
-          reason: "Tạo cảm giác lịch thiệp hơn.",
-        },
-      ],
-      keyTips: [
-        "Mẹo: Sau dấu phẩy ở lời chào (z.B. 'Hallo Peter,'), dòng tiếp theo bắt đầu bằng chữ thường.",
-        "Kết thúc thư thân mật: 'Herzliche Grüße' hoặc 'Viele Grüße'.",
-      ],
+    console.warn("AI request unavailable:", error?.message);
+    return res.status(503).json({
+      error: "AI_UNAVAILABLE",
+      message: "AI đang tạm thời không khả dụng. Hãy thử lại sau.",
     });
   }
 });

@@ -97,7 +97,14 @@ export const ConversationView: React.FC = () => {
       if (res.vietnameseHint) setActiveHint(res.vietnameseHint);
       storageService.addStudyTime(2);
     } catch (error) {
-      console.error(error);
+      const message = error instanceof Error ? error.message : 'AI đang tạm thời không khả dụng. Hãy thử lại sau.';
+      setMessages((current) => [...current, {
+        id: `ai_error_${Date.now()}`,
+        sender: 'ai',
+        text: message,
+        timestamp: new Date().toISOString(),
+      }]);
+      setActiveHint(null);
     } finally {
       setIsLoading(false);
     }

@@ -48,10 +48,12 @@ export const AITutorView: React.FC = () => {
   const [userWritingText, setUserWritingText] = useState('');
   const [isEvaluatingWriting, setIsEvaluatingWriting] = useState(false);
   const [writingResult, setWritingResult] = useState<WritingCorrectionResponse | null>(null);
+  const [writingError, setWritingError] = useState<string | null>(null);
 
   const [sentenceToAnalyze, setSentenceToAnalyze] = useState('');
   const [isAnalyzingSentence, setIsAnalyzingSentence] = useState(false);
   const [sentenceAnalysisResult, setSentenceAnalysisResult] = useState<any>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -71,7 +73,8 @@ export const AITutorView: React.FC = () => {
       speechService.playSuccessSound();
       storageService.addStudyTime(1);
     } catch (error) {
-      console.error(error);
+      const message = error instanceof Error ? error.message : 'AI đang tạm thời không khả dụng. Hãy thử lại sau.';
+      setMessages((current) => [...current, { sender: 'ai', text: message }]);
     } finally {
       setIsLoading(false);
     }
@@ -80,13 +83,15 @@ export const AITutorView: React.FC = () => {
   const handleEvaluateWriting = async () => {
     if (!userWritingText.trim() || isEvaluatingWriting) return;
     setIsEvaluatingWriting(true);
+    setWritingError(null);
     try {
       const response = await correctGermanWriting({ promptTopic: `${currentTopic.title} - ${currentTopic.prompt}`, userText: userWritingText, level: currentTopic.level });
       setWritingResult(response);
       speechService.playLevelUpSound();
       storageService.addStudyTime(5);
     } catch (error) {
-      console.error(error);
+      setWritingResult(null);
+      setWritingError(error instanceof Error ? error.message : 'AI đang tạm thời không khả dụng. Hãy thử lại sau.');
     } finally {
       setIsEvaluatingWriting(false);
     }
@@ -95,12 +100,14 @@ export const AITutorView: React.FC = () => {
   const handleAnalyzeSentence = async () => {
     if (!sentenceToAnalyze.trim() || isAnalyzingSentence) return;
     setIsAnalyzingSentence(true);
+    setAnalysisError(null);
     try {
       const response = await analyzeGermanSentence(sentenceToAnalyze);
       setSentenceAnalysisResult(response);
       speechService.playSuccessSound();
     } catch (error) {
-      console.error(error);
+      setSentenceAnalysisResult(null);
+      setAnalysisError(error instanceof Error ? error.message : 'AI đang tạm thời không khả dụng. Hãy thử lại sau.');
     } finally {
       setIsAnalyzingSentence(false);
     }
@@ -128,11 +135,13 @@ export const AITutorView: React.FC = () => {
       {activeMainTab === 'writing' && <section className="mt-5 space-y-4">
         <div className="rounded-[22px] border border-black/[0.06] bg-white p-4 shadow-sm sm:p-5"><p className="text-xs font-black text-slate-400">Chọn đề</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{WRITING_TOPIC_TEMPLATES.map((topic) => <button key={topic.id} onClick={() => { setSelectedTopicId(topic.id); setWritingResult(null); }} className={`rounded-2xl border p-3.5 text-left ${selectedTopicId === topic.id ? 'border-amber-300 bg-amber-50' : 'border-black/[0.06] bg-[#f7f7f5]'}`}><div className="flex items-center justify-between"><span className="text-xs font-black text-slate-900">{topic.title}</span><span className="text-[10px] font-black text-slate-400">{topic.level}</span></div></button>)}</div><div className="mt-3 rounded-2xl bg-[#f7f7f5] p-4 text-xs leading-5 text-slate-600"><p className="font-black text-slate-800">Đề bài</p><p className="mt-1">{currentTopic.prompt}</p><p className="mt-2 font-medium text-amber-700">Mở đầu: {currentTopic.sampleOpening}</p></div></div>
         <div className="rounded-[22px] border border-black/[0.06] bg-white p-4 shadow-sm sm:p-5"><textarea rows={7} value={userWritingText} onChange={(e) => setUserWritingText(e.target.value)} placeholder="Viết email/thư tiếng Đức ở đây…" className="w-full rounded-2xl bg-[#f7f7f5] p-4 text-sm leading-6 outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-amber-400" /><div className="mt-3 flex items-center justify-between"><span className="text-xs font-bold text-slate-400">{userWritingText.trim() ? userWritingText.trim().split(/\s+/).length : 0} từ</span><button onClick={handleEvaluateWriting} disabled={!userWritingText.trim() || isEvaluatingWriting} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-xs font-black text-white disabled:opacity-30"><PenTool className="h-4 w-4" />{isEvaluatingWriting ? 'Đang chấm…' : 'Chấm & sửa'}</button></div></div>
+        {writingError && <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-700">{writingError}</div>}
         {writingResult && <div className="rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">Kết quả {writingResult.cefrLevel}</p><p className="mt-1 text-sm leading-6 text-slate-600">{writingResult.overallFeedback}</p></div><span className="text-3xl font-black text-slate-950">{writingResult.score}</span></div><div className="mt-5"><div className="flex items-center justify-between"><p className="text-xs font-black text-slate-400">Bản sửa</p><button onClick={() => speechService.speak(writingResult.correctedVersion)} className="text-slate-400"><Volume2 className="h-4 w-4" /></button></div><div className="mt-2 whitespace-pre-wrap rounded-2xl bg-emerald-50 p-4 text-xs leading-6 text-slate-800">{writingResult.correctedVersion}</div></div>{writingResult.sentenceCorrections?.length > 0 && <div className="mt-5 space-y-2">{writingResult.sentenceCorrections.map((item, index) => <div key={index} className="rounded-2xl bg-[#f7f7f5] p-3 text-xs leading-5"><p className="line-through text-slate-400">{item.original}</p><p className="font-black text-slate-900">{item.corrected}</p><p className="text-slate-500">{item.explanation}</p></div>)}</div>}{writingResult.keyTips?.length > 0 && <div className="mt-5 rounded-2xl bg-blue-50 p-4 text-xs text-blue-900"><p className="flex items-center gap-1.5 font-black"><Lightbulb className="h-4 w-4" />Mẹo cần nhớ</p><ul className="mt-2 space-y-1">{writingResult.keyTips.map((tip, index) => <li key={index}>• {tip}</li>)}</ul></div>}</div>}
       </section>}
 
       {activeMainTab === 'analyzer' && <section className="mt-5 space-y-4">
         <div className="rounded-[22px] border border-black/[0.06] bg-white p-4 shadow-sm sm:p-5"><p className="text-xs font-black text-slate-400">Phân tích một câu tiếng Đức</p><div className="mt-3 flex gap-2"><input value={sentenceToAnalyze} onChange={(e) => setSentenceToAnalyze(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAnalyzeSentence(); }} placeholder="Ich habe gestern meine Hausaufgaben gemacht." className="min-h-11 min-w-0 flex-1 rounded-xl bg-[#f7f7f5] px-4 text-sm outline-none ring-1 ring-black/[0.05] focus:ring-2 focus:ring-amber-400" /><button onClick={handleAnalyzeSentence} disabled={!sentenceToAnalyze.trim() || isAnalyzingSentence} className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white disabled:opacity-30"><Search className="h-4 w-4" /></button></div></div>
+        {analysisError && <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-700">{analysisError}</div>}
         {sentenceAnalysisResult && <div className="rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-black text-slate-950">{sentenceAnalysisResult.corrected || sentenceAnalysisResult.original}</h2><p className="mt-1 text-xs text-slate-500">{sentenceAnalysisResult.vietnameseTranslation}</p></div><button onClick={() => speechService.speak(sentenceAnalysisResult.corrected || sentenceAnalysisResult.original)} className="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><Volume2 className="h-4 w-4" /></button></div>{sentenceAnalysisResult.pronunciationGuide && <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-xs font-mono text-amber-900">{sentenceAnalysisResult.pronunciationGuide}</p>}{sentenceAnalysisResult.grammarBreakdown && <div className="mt-5 grid gap-2 sm:grid-cols-2">{sentenceAnalysisResult.grammarBreakdown.map((item: any, index: number) => <div key={index} className="rounded-2xl bg-[#f7f7f5] p-3 text-xs leading-5"><p className="font-black text-amber-700">{item.component}</p><p className="font-bold text-slate-800">{item.role}</p><p className="text-slate-500">{item.explanation}</p></div>)}</div>}</div>}
       </section>}
     </div>
