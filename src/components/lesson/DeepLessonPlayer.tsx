@@ -72,10 +72,10 @@ const emptyScores = (): DeepLessonScoreState => ({
 
 const macroStages = [
   { label: 'Bắt đầu', ids: ['goal', 'warmup'] },
-  { label: 'Học', ids: ['learn', 'concept'] },
+  { label: 'Làm quen', ids: ['learn', 'concept'] },
   { label: 'Luyện', ids: ['drill'] },
-  { label: 'Dùng', ids: ['production', 'speaking', 'challenge'] },
-  { label: 'Kiểm tra', ids: ['mastery', 'remediation', 'review'] },
+  { label: 'Nói', ids: ['production', 'speaking', 'challenge'] },
+  { label: 'Xong', ids: ['mastery', 'remediation', 'review'] },
 ] as const;
 
 function readSession(lessonId: string): SessionSnapshot | null {
@@ -165,8 +165,29 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
   onClose,
   onFinishLesson,
 }) => {
+  const learnerProgress = storageService.getProgress();
+  const beginnerGuided =
+    lesson.level === 'A0' &&
+    (lesson.lessonNumber <= 3 || (learnerProgress.completedLessons || []).length < 3);
+
+  const guidedWarmup = beginnerGuided ? [] : deep.warmup;
+  const easyDrills = deep.drills.filter((exercise) => (exercise.difficulty || 1) === 1);
+  const guidedDrills = beginnerGuided
+    ? (easyDrills.length ? easyDrills : deep.drills).slice(0, 4)
+    : deep.drills;
+  const guidedProduction = beginnerGuided ? deep.production.slice(0, 1) : deep.production;
+  const guidedSpeaking = beginnerGuided ? deep.speaking.slice(0, 1) : deep.speaking;
+  const easyMastery = deep.mastery.filter((exercise) => (exercise.difficulty || 1) === 1);
+  const guidedMastery = beginnerGuided
+    ? (easyMastery.length ? easyMastery : deep.mastery).slice(0, 3)
+    : deep.mastery;
+
   const resume = useMemo(() => readSession(lesson.id), [lesson.id]);
-  const [stage, setStage] = useState<StageId>(resume?.stage || 'goal');
+  const initialStage: StageId =
+    beginnerGuided && resume?.stage === 'warmup'
+      ? 'learn'
+      : resume?.stage || 'goal';
+  const [stage, setStage] = useState<StageId>(initialStage);
   const [itemIndex, setItemIndex] = useState(resume?.itemIndex || 0);
   const [subIndex, setSubIndex] = useState(resume?.subIndex || 0);
   const [scores, setScores] = useState<DeepLessonScoreState>(
@@ -179,7 +200,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
     Record<string, { correct: number; total: number }>
   >(resume?.skillStats || {});
   const [resolved, setResolved] = useState(false);
-  const [showMeaning, setShowMeaning] = useState(false);
+  const [showMeaning, setShowMeaning] = useState(beginnerGuided);
   const [productionText, setProductionText] = useState('');
   const [productionFeedback, setProductionFeedback] = useState<{
     ok: boolean;
@@ -223,7 +244,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
   const resetTransient = () => {
     setResolved(false);
-    setShowMeaning(false);
+    setShowMeaning(beginnerGuided);
     setProductionText('');
     setProductionFeedback(null);
     setSpeakingTranscript('');
@@ -307,11 +328,11 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
   const currentConcept = deep.concepts[itemIndex];
   const currentCheckpoint = currentConcept?.checkpoint[subIndex];
-  const currentDrill = deep.drills[itemIndex];
-  const currentProduction = deep.production[itemIndex];
-  const currentSpeaking = deep.speaking[itemIndex];
+  const currentDrill = guidedDrills[itemIndex];
+  const currentProduction = guidedProduction[itemIndex];
+  const currentSpeaking = guidedSpeaking[itemIndex];
   const currentTurn = deep.challenge.turns[itemIndex];
-  const currentMastery = deep.mastery[itemIndex];
+  const currentMastery = guidedMastery[itemIndex];
 
   const applicableRemediation = useMemo(() => {
     const weakSkills = Object.entries(wrongSkills)
@@ -330,6 +351,26 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
     [applicableRemediation]
   );
   const currentRemediation = remediationExercises[itemIndex];
+
+  const getCurrentOverallScore = (scoreState: DeepLessonScoreState) => {
+    if (!beginnerGuided) return getOverallScore(scoreState);
+    const pct = getStagePercentages(scoreState);
+    const values = [pct.drill, pct.mastery];
+    if (scoreState.production.total > 0) values.push(pct.production);
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  };
+
+  const passesCurrentLesson = (
+    scoreState: DeepLessonScoreState,
+    stats: Record<string, { correct: number; total: number }>
+  ) => {
+    if (!beginnerGuided) return hasPassedLesson(lesson.id, scoreState, stats);
+    return (
+      scoreState.drill.total > 0 &&
+      scoreState.mastery.total > 0 &&
+      scoreState.production.total > 0
+    );
+  };
 
   const recordProduction = () => {
     if (!currentProduction || !productionText.trim()) return;
@@ -416,8 +457,8 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
   };
 
   const finalizeLesson = () => {
-    const overall = getOverallScore(scores);
-    const passed = hasPassedLesson(lesson.id, scores, skillStats);
+    const overall = getCurrentOverallScore(scores);
+    const passed = passesCurrentLesson(scores, skillStats);
     const sortedSkills = Object.entries(skillStats)
       .filter(([, stat]) => stat.total > 0)
       .map(([skill, stat]) => ({
@@ -546,26 +587,48 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                  Mục tiêu bài học
+                  {beginnerGuided ? 'Dành cho người mới' : 'Mục tiêu bài học'}
                 </p>
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
-                  Sau bài này, bạn thực sự làm được gì?
+                  {beginnerGuided
+                    ? 'Không cần biết gì trước. Cứ làm từng bước.'
+                    : 'Sau bài này, bạn thực sự làm được gì?'}
                 </h1>
               </div>
 
               <div className={panelClass}>
-                <div className="space-y-4">
-                  {deep.objectives.map((objective) => (
-                    <div key={objective.id} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
-                        <Target className="h-4 w-4" />
-                      </span>
-                      <p className="text-sm font-semibold leading-relaxed text-slate-800">
-                        {objective.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {beginnerGuided ? (
+                  <div className="space-y-3">
+                    {[
+                      'Nghe mẫu trước.',
+                      'Nhìn nghĩa và quy tắc thật ngắn.',
+                      'Thử vài câu. Không biết thì bấm xem đáp án.',
+                    ].map((item, index) => (
+                      <div key={item} className="flex items-center gap-3">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-amber-100 text-xs font-black text-amber-800">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm font-bold text-slate-800">{item}</p>
+                      </div>
+                    ))}
+                    <p className="pt-1 text-xs leading-5 text-slate-500">
+                      Không cần học thuộc ngay. Mục tiêu đầu tiên là nghe quen và hiểu ý.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deep.objectives.map((objective) => (
+                      <div key={objective.id} className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                          <Target className="h-4 w-4" />
+                        </span>
+                        <p className="text-sm font-semibold leading-relaxed text-slate-800">
+                          {objective.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {resume && resume.stage !== 'goal' ? (
@@ -576,11 +639,13 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
               <button
                 type="button"
-                onClick={() => move(deep.warmup.length ? 'warmup' : 'learn')}
+                onClick={() => move(guidedWarmup.length ? 'warmup' : 'learn')}
                 className="w-full rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-extrabold text-white hover:bg-slate-800"
               >
                 {resume && resume.stage !== 'goal'
-                  ? 'Bắt đầu lại theo lộ trình'
+                  ? 'Bắt đầu lại từ đầu'
+                  : beginnerGuided
+                  ? 'Bắt đầu chậm từng bước'
                   : 'Bắt đầu bài học'}
               </button>
             </div>
@@ -590,7 +655,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Khởi động · {itemIndex + 1}/{deep.warmup.length}
+                  Khởi động · {itemIndex + 1}/{guidedWarmup.length}
                 </p>
                 <h2 className="mt-2 text-xl font-black text-slate-950">
                   Gọi lại kiến thức cũ
@@ -602,10 +667,10 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
               <div className={panelClass}>
                 <ExerciseRenderer
-                  key={deep.warmup[itemIndex]?.id}
-                  exercise={deep.warmup[itemIndex]}
+                  key={guidedWarmup[itemIndex]?.id}
+                  exercise={guidedWarmup[itemIndex]}
                   onResolved={(ok) =>
-                    finishUnscoredExercise(deep.warmup[itemIndex], ok)
+                    finishUnscoredExercise(guidedWarmup[itemIndex], ok)
                   }
                 />
               </div>
@@ -614,7 +679,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (itemIndex + 1 < deep.warmup.length) {
+                    if (itemIndex + 1 < guidedWarmup.length) {
                       resetTransient();
                       setItemIndex((p) => p + 1);
                       persist('warmup', itemIndex + 1, 0);
@@ -638,7 +703,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                     Học từ & mẫu · {vocab.length ? itemIndex + 1 : 0}/{vocab.length}
                   </p>
                   <h2 className="mt-2 text-xl font-black text-slate-950">
-                    Nhìn → nghe → tự nhớ
+                    {beginnerGuided ? 'Nghe → nhìn nghĩa → đọc theo' : 'Nhìn → nghe → tự nhớ'}
                   </h2>
                 </div>
               </div>
@@ -663,7 +728,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                       </p>
                     ) : null}
 
-                    <div className="mt-5 flex justify-center gap-2">
+                    <div className="mt-5 flex flex-wrap justify-center gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -679,13 +744,32 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                         <Volume2 className="h-4 w-4" />
                         Nghe
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowMeaning((p) => !p)}
-                        className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-extrabold text-slate-950"
-                      >
-                        {showMeaning ? 'Ẩn nghĩa' : 'Tự nhớ rồi xem nghĩa'}
-                      </button>
+                      {beginnerGuided ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            speechService.speak(
+                              vocab[itemIndex]?.article &&
+                                vocab[itemIndex]?.article !== 'none'
+                                ? `${vocab[itemIndex].article} ${vocab[itemIndex].german}`
+                                : vocab[itemIndex]?.german || '',
+                              0.65
+                            )
+                          }
+                          className="inline-flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-extrabold text-amber-900"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                          Nghe chậm
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowMeaning((p) => !p)}
+                          className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-extrabold text-slate-950"
+                        >
+                          {showMeaning ? 'Ẩn nghĩa' : 'Tự nhớ rồi xem nghĩa'}
+                        </button>
+                      )}
                     </div>
 
                     {showMeaning ? (
@@ -720,7 +804,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setShowMeaning(false);
+                      setShowMeaning(beginnerGuided);
                       setItemIndex((p) => p - 1);
                     }}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700"
@@ -733,7 +817,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   disabled={vocab.length > 0 && !showMeaning}
                   onClick={() => {
                     if (vocab.length && itemIndex + 1 < vocab.length) {
-                      setShowMeaning(false);
+                      setShowMeaning(beginnerGuided);
                       setItemIndex((p) => p + 1);
                       persist('learn', itemIndex + 1, 0);
                     } else {
@@ -755,7 +839,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Micro concept · {itemIndex + 1}/{deep.concepts.length}
+                  Quy tắc · {itemIndex + 1}/{deep.concepts.length}
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
                   {currentConcept.title}
@@ -777,17 +861,27 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   {currentConcept.examples.map((example, idx) => (
                     <div
                       key={`${example.german}-${idx}`}
-                      className="rounded-xl bg-slate-50 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-3"
                     >
-                      <p className="font-bold text-slate-950">{example.german}</p>
-                      <p className="mt-0.5 text-sm text-slate-500">
-                        {example.vietnamese}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-950">{example.german}</p>
+                        <p className="mt-0.5 text-sm text-slate-500">
+                          {example.vietnamese}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speechService.speak(example.german, beginnerGuided ? 0.72 : 0.9)}
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-slate-600 ring-1 ring-black/[0.05]"
+                        aria-label={`Nghe ${example.german}`}
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
 
-                {currentConcept.trap ? (
+                {!beginnerGuided && currentConcept.trap ? (
                   <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
                     <p className="text-xs font-black uppercase tracking-wide text-rose-700">
                       Bẫy dễ sai
@@ -809,11 +903,12 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
               {currentCheckpoint ? (
                 <div className={panelClass}>
                   <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-amber-700">
-                    Kiểm tra ngay
+                    {beginnerGuided ? 'Thử 1 câu · không biết cũng không sao' : 'Kiểm tra ngay'}
                   </p>
                   <ExerciseRenderer
                     key={currentCheckpoint.id}
                     exercise={currentCheckpoint}
+                    beginnerHelp={beginnerGuided}
                     onResolved={(ok) =>
                       finishUnscoredExercise(currentCheckpoint, ok)
                     }
@@ -850,16 +945,17 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Luyện phản xạ · {itemIndex + 1}/{deep.drills.length}
+                  Luyện · {itemIndex + 1}/{guidedDrills.length}
                 </p>
                 <h2 className="mt-2 text-xl font-black text-slate-950">
-                  Không chỉ nhận ra — phải tự nhớ
+                  {beginnerGuided ? 'Thử vài câu rất ngắn' : 'Không chỉ nhận ra — phải tự nhớ'}
                 </h2>
               </div>
               <div className={panelClass}>
                 <ExerciseRenderer
                   key={currentDrill.id}
                   exercise={currentDrill}
+                  beginnerHelp={beginnerGuided}
                   onResolved={(ok) =>
                     resolveScoredExercise(currentDrill, ok, 'drill')
                   }
@@ -869,7 +965,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (itemIndex + 1 < deep.drills.length) {
+                    if (itemIndex + 1 < guidedDrills.length) {
                       move('drill', itemIndex + 1);
                     } else {
                       move('production');
@@ -877,7 +973,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   }}
                   className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white"
                 >
-                  {itemIndex + 1 < deep.drills.length
+                  {itemIndex + 1 < guidedDrills.length
                     ? 'Câu tiếp theo'
                     : 'Sang phần tự dùng'}
                   <ArrowRight className="ml-1 inline h-4 w-4" />
@@ -890,7 +986,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Tự tạo câu · {itemIndex + 1}/{deep.production.length}
+                  {beginnerGuided ? 'Viết theo mẫu' : 'Tự tạo câu'} · {itemIndex + 1}/{guidedProduction.length}
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
                   {currentProduction.title}
@@ -901,12 +997,17 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
               </div>
 
               <div className={panelClass}>
+                {beginnerGuided ? (
+                  <div className="mb-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-950">
+                    <span className="font-black">Nhìn mẫu trước:</span> {currentProduction.modelAnswer}
+                  </div>
+                ) : null}
                 <textarea
-                  rows={5}
+                  rows={beginnerGuided ? 3 : 5}
                   disabled={Boolean(productionFeedback)}
                   value={productionText}
                   onChange={(e) => setProductionText(e.target.value)}
-                  placeholder="Tự viết câu của bạn ở đây..."
+                  placeholder={beginnerGuided ? 'Viết lại theo mẫu...' : 'Tự viết câu của bạn ở đây...'}
                   className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-4 text-base font-semibold text-slate-950 outline-none focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
                 />
                 <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-950">
@@ -955,7 +1056,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (itemIndex + 1 < deep.production.length) {
+                    if (itemIndex + 1 < guidedProduction.length) {
                       move('production', itemIndex + 1);
                     } else {
                       move('speaking');
@@ -973,10 +1074,12 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Nghe & nói · {itemIndex + 1}/{deep.speaking.length}
+                  Nghe & nói · {itemIndex + 1}/{guidedSpeaking.length}
                 </p>
                 <h2 className="mt-2 text-xl font-black text-slate-950">
-                  {currentSpeaking.mode === 'respond'
+                  {beginnerGuided
+                    ? 'Nghe rồi nói theo'
+                    : currentSpeaking.mode === 'respond'
                     ? 'Tự trả lời bằng tiếng Đức'
                     : 'Nghe rồi shadow'}
                 </h2>
@@ -1039,10 +1142,10 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  if (itemIndex + 1 < deep.speaking.length) {
+                  if (itemIndex + 1 < guidedSpeaking.length) {
                     move('speaking', itemIndex + 1);
                   } else {
-                    move('challenge');
+                    move(beginnerGuided ? 'mastery' : 'challenge');
                   }
                 }}
                 className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white"
@@ -1141,16 +1244,19 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                  Mastery check · {itemIndex + 1}/{deep.mastery.length}
+                  {beginnerGuided ? 'Ôn nhanh cuối bài' : 'Mastery check'} · {itemIndex + 1}/{guidedMastery.length}
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  Không nhìn lại bài. Tự nhớ và dùng.
+                  {beginnerGuided
+                    ? 'Chỉ cần thử. Sai thì app sẽ chỉ lại.'
+                    : 'Không nhìn lại bài. Tự nhớ và dùng.'}
                 </h2>
               </div>
               <div className={panelClass}>
                 <ExerciseRenderer
                   key={currentMastery.id}
                   exercise={currentMastery}
+                  beginnerHelp={beginnerGuided}
                   onResolved={(ok) =>
                     resolveScoredExercise(currentMastery, ok, 'mastery')
                   }
@@ -1161,13 +1267,13 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (itemIndex + 1 < deep.mastery.length) {
+                    if (itemIndex + 1 < guidedMastery.length) {
                       move('mastery', itemIndex + 1);
                       return;
                     }
 
                     const nextScores = scores;
-                    const passed = hasPassedLesson(lesson.id, nextScores, skillStats);
+                    const passed = passesCurrentLesson(nextScores, skillStats);
                     if (!passed && remediationExercises.length) {
                       move('remediation');
                     } else {
@@ -1176,7 +1282,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   }}
                   className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white"
                 >
-                  {itemIndex + 1 < deep.mastery.length
+                  {itemIndex + 1 < guidedMastery.length
                     ? 'Câu tiếp theo'
                     : 'Xem kết quả'}
                   <ArrowRight className="ml-1 inline h-4 w-4" />
@@ -1264,8 +1370,8 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
           {stage === 'review' && (() => {
             const stagePct = getStagePercentages(scores);
-            const overall = getOverallScore(scores);
-            const passed = hasPassedLesson(lesson.id, scores, skillStats);
+            const overall = getCurrentOverallScore(scores);
+            const passed = passesCurrentLesson(scores, skillStats);
             const sortedSkills = Object.entries(skillStats)
               .filter(([, stat]) => stat.total > 0)
               .map(([skill, stat]) => ({
@@ -1298,32 +1404,44 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                     )}
                   </div>
                   <h2 className="mt-4 text-3xl font-black text-slate-950">
-                    {overall}% · {scoreLabel(overall)}
+                    {beginnerGuided
+                      ? 'Hoàn thành lượt học đầu tiên'
+                      : `${overall}% · ${scoreLabel(overall)}`}
                   </h2>
                   <p className="mt-2 text-sm text-slate-500">
                     {passed
-                      ? 'Bạn đã vượt mastery gate của bài này.'
+                      ? beginnerGuided
+                        ? 'Xong rồi. Bạn đã đủ để sang bài tiếp theo.'
+                        : 'Bạn đã vượt mastery gate của bài này.'
+                      : beginnerGuided
+                      ? 'Không sao. App sẽ cho ôn lại đúng phần bạn vừa vướng.'
                       : 'Bạn đã đi hết bài nhưng còn vài điểm cần củng cố trước khi tính là thành thạo.'}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {[
-                    ['Luyện', stagePct.drill],
-                    ['Tự dùng', stagePct.production],
-                    ['Tình huống', stagePct.challenge],
-                    ['Kiểm tra', stagePct.mastery],
-                  ].map(([label, value]) => (
-                    <div key={String(label)} className={panelClass}>
-                      <p className="text-xs font-bold text-slate-400">
-                        {String(label)}
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-slate-950">
-                        {Number(value)}%
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {beginnerGuided ? (
+                  <div className="rounded-2xl bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                    Lượt đầu chỉ cần <strong>nghe, hiểu và thử</strong>. Những câu bạn chưa biết đã được ghi lại để ôn sau — không cần đạt điểm cao ngay.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      ['Luyện', stagePct.drill],
+                      ['Tự dùng', stagePct.production],
+                      ['Tình huống', stagePct.challenge],
+                      ['Kiểm tra', stagePct.mastery],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className={panelClass}>
+                        <p className="text-xs font-bold text-slate-400">
+                          {String(label)}
+                        </p>
+                        <p className="mt-1 text-2xl font-black text-slate-950">
+                          {Number(value)}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {graduationDomains.length ? (
                   <div className={panelClass}>

@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.3 — 2026-09-30
+- Thêm chế độ học có hướng dẫn cho người mới ở các bài A0 đầu tiên.
+- Người mới không còn bị hỏi warm-up kiến thức trước khi được dạy; bài bắt đầu bằng nghe, nhìn nghĩa và ví dụ.
+- Rút gọn lượt đầu: tối đa 4 câu luyện dễ, 1 bài viết theo mẫu, 1 lượt nói và tối đa 3 câu ôn cuối.
+- Bỏ challenge tình huống khó khỏi lượt học có hướng dẫn; vẫn giữ flow đầy đủ cho các bài/level về sau.
+- Thêm “Chưa biết · xem đáp án” để người mới học từ đáp án thay vì bị kẹt ở câu hỏi.
+- Từ mới ở chế độ người mới hiện nghĩa ngay, có nút Nghe và Nghe chậm.
+- Ví dụ trong phần quy tắc có nút nghe trực tiếp; bẫy nâng cao được ẩn ở lượt beginner.
+- Bài viết đầu tiên hiển thị câu mẫu trước để người học bắt chước thay vì phải tự nghĩ từ số 0.
+- Giảm ngôn ngữ ký hiệu/chuyên môn ở bài A0 đầu tiên, ưu tiên cách diễn đạt gần âm tiếng Việt.
+- Chuẩn hoàn thành ở chế độ beginner nhẹ hơn, tập trung vào hiểu và thử được thay vì mastery gate nặng.
+- Version hiển thị và service worker cache tăng lên v0.2.3.
+
 ## v0.2.2 — 2026-09-30
 - Khóa layout mobile theo chiều ngang: html/body/#root không còn trượt lệch trái phải khi vuốt.
 - Giữ gesture dọc và pinch-zoom để không phá khả năng truy cập.

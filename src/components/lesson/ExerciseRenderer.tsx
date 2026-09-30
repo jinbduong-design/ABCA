@@ -8,16 +8,19 @@ interface ExerciseRendererProps {
   exercise: DeepExercise;
   onResolved: (correct: boolean, answer: string) => void;
   compact?: boolean;
+  beginnerHelp?: boolean;
 }
 
 export const ExerciseRenderer: React.FC<ExerciseRendererProps> = ({
   exercise,
   onResolved,
   compact = false,
+  beginnerHelp = false,
 }) => {
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [correct, setCorrect] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const [pickedWords, setPickedWords] = useState<string[]>([]);
 
   const value = exercise.kind === 'reorder' ? pickedWords.join(' ') : answer;
@@ -41,6 +44,14 @@ export const ExerciseRenderer: React.FC<ExerciseRendererProps> = ({
     if (ok) speechService.playSuccessSound();
     else speechService.playErrorSound();
     onResolved(ok, value);
+  };
+
+  const revealAnswer = () => {
+    if (submitted) return;
+    setRevealed(true);
+    setCorrect(false);
+    setSubmitted(true);
+    onResolved(false, '');
   };
 
   return (
@@ -168,8 +179,12 @@ export const ExerciseRenderer: React.FC<ExerciseRendererProps> = ({
               <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
             )}
             <div className="space-y-1">
-              <p className={`text-sm font-extrabold ${correct ? 'text-emerald-900' : 'text-rose-900'}`}>
-                {correct ? 'Đúng.' : `Chưa đúng. Đáp án: ${exercise.answer}`}
+              <p className={`text-sm font-extrabold ${correct ? 'text-emerald-900' : revealed ? 'text-amber-900' : 'text-rose-900'}`}>
+                {correct
+                  ? 'Đúng.'
+                  : revealed
+                  ? `Không sao. Đáp án mẫu: ${exercise.answer}`
+                  : `Chưa đúng. Đáp án: ${exercise.answer}`}
               </p>
               <p className="text-sm leading-relaxed text-slate-700">
                 {exercise.explanation}
@@ -178,14 +193,25 @@ export const ExerciseRenderer: React.FC<ExerciseRendererProps> = ({
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={submit}
-          className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-35 sm:w-auto"
-        >
-          Kiểm tra
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={submit}
+            className="w-full rounded-xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-35 sm:w-auto"
+          >
+            Kiểm tra
+          </button>
+          {beginnerHelp ? (
+            <button
+              type="button"
+              onClick={revealAnswer}
+              className="w-full rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-extrabold text-amber-900 sm:w-auto"
+            >
+              Chưa biết · xem đáp án
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   );
