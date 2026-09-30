@@ -8,17 +8,42 @@
 
 @layer base {
   html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     background: #f7f7f5;
+    overscroll-behavior-x: none;
   }
 
   body {
     margin: 0;
-    min-width: 320px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
     background: #f7f7f5;
     color: #0f172a;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  #root {
+    position: relative;
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
   }
 
   button,
@@ -52,6 +77,12 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.app-top-safe {
+  padding-top: max(env(safe-area-inset-top), 10px);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -68,4 +99,14 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a29e;
+}
+
+@media (max-width: 767px) {
+  * {
+    min-width: 0;
+  }
+
+  .mobile-focus-scroll {
+    overscroll-behavior-y: contain;
+  }
 }

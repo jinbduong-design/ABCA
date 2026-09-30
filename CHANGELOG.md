@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.2 — 2026-09-30
+- Khóa layout mobile theo chiều ngang: html/body/#root không còn trượt lệch trái phải khi vuốt.
+- Giữ gesture dọc và pinch-zoom để không phá khả năng truy cập.
+- Sửa vùng trên iPhone/PWA: bỏ black-translucent và thêm safe-area để nội dung nằm dưới Dynamic Island/đồng hồ.
+- Header mobile thấp và gọn hơn; logo, version và streak vẫn giữ để kiểm tra nhanh.
+- Bottom navigation giảm còn 4 mục: Học · Lộ trình · Ôn từ · Thêm; AI và các công cụ phụ chuyển vào Thêm.
+- Home mobile rút gọn mạnh: chỉ còn bài cần học, 3 bước hôm nay và mục tiêu ngày; mô tả dài/công cụ phụ ẩn trên màn nhỏ.
+- Service worker cache và version hiển thị tăng lên v0.2.2.
+
 ## v0.2.1 — 2026-09-30
 - Làm lại Home theo hướng beginner-first: người mới thấy ngay một nút “Bắt đầu bài đầu tiên” thay vì phải tự chọn Từ vựng, Ngữ pháp hay AI.
 - Home tự chọn bài chưa hoàn thành đầu tiên trong toàn bộ lộ trình A0 → A1 → A2 và sau mỗi bài tự chuyển sang bài kế tiếp.

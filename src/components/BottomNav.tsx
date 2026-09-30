@@ -18,16 +18,16 @@ interface BottomNavProps {
 }
 
 const primaryTabs = [
-  { id: 'home', label: 'Hôm nay', icon: Home },
+  { id: 'home', label: 'Học', icon: Home },
   { id: 'learn', label: 'Lộ trình', icon: BookOpen },
-  { id: 'vocab', label: 'Từ vựng', icon: Layers },
-  { id: 'tutor', label: 'AI Tutor', icon: Bot },
+  { id: 'vocab', label: 'Ôn từ', icon: Layers },
 ];
 
 const moreTabs = [
-  { id: 'grammar', label: 'Ngữ pháp', icon: BookOpen },
+  { id: 'tutor', label: 'AI Tutor', icon: Bot },
   { id: 'conversation', label: 'Hội thoại', icon: MessageSquare },
-  { id: 'mistakes', label: 'Sổ lỗi', icon: AlertCircle },
+  { id: 'grammar', label: 'Ngữ pháp', icon: BookOpen },
+  { id: 'mistakes', label: 'Lỗi sai', icon: AlertCircle },
   { id: 'progress', label: 'Tiến độ', icon: BarChart3 },
 ];
 
@@ -50,20 +50,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            aria-label="Đóng menu học thêm"
+            aria-label="Đóng menu"
             className="absolute inset-0 bg-slate-950/25 backdrop-blur-[2px]"
             onClick={() => setMoreOpen(false)}
           />
-          <section className="absolute inset-x-3 bottom-[78px] rounded-[24px] border border-black/[0.08] bg-white p-3 shadow-2xl">
-            <div className="mb-2 flex items-center justify-between px-2 py-1">
-              <div>
-                <p className="text-sm font-black text-slate-950">Học thêm</p>
-                <p className="text-[11px] font-medium text-slate-400">Các khu vực dùng ít thường xuyên hơn</p>
-              </div>
+
+          <section
+            className="absolute inset-x-3 rounded-[22px] border border-black/[0.08] bg-white p-3 shadow-2xl"
+            style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))' }}
+          >
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-sm font-black text-slate-950">Thêm</p>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-500"
+                className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-500"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -78,19 +79,23 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => navigate(item.id)}
-                    className={`relative flex min-h-[72px] items-center gap-3 rounded-2xl px-4 text-left transition ${
-                      active ? 'bg-amber-50 text-slate-950 ring-1 ring-amber-200' : 'bg-[#f7f7f5] text-slate-700'
+                    className={`relative flex min-h-[58px] items-center gap-2.5 rounded-xl px-3 text-left transition ${
+                      active
+                        ? 'bg-amber-50 text-slate-950 ring-1 ring-amber-200'
+                        : 'bg-[#f7f7f5] text-slate-700'
                     }`}
                   >
-                    <span className={`grid h-10 w-10 place-items-center rounded-xl ${active ? 'bg-amber-500 text-white' : 'bg-white text-slate-500'}`}>
-                      <Icon className="h-[18px] w-[18px]" />
+                    <span
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+                        active ? 'bg-amber-500 text-white' : 'bg-white text-slate-500'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
                     </span>
-                    <span>
-                      <span className="block text-sm font-extrabold">{item.label}</span>
-                      {item.id === 'mistakes' && mistakesCount > 0 && (
-                        <span className="mt-0.5 block text-[11px] font-bold text-red-600">{mistakesCount} lỗi cần ôn</span>
-                      )}
-                    </span>
+                    <span className="truncate text-xs font-extrabold">{item.label}</span>
+                    {item.id === 'mistakes' && mistakesCount > 0 && (
+                      <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
+                    )}
                   </button>
                 );
               })}
@@ -99,8 +104,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         </div>
       )}
 
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] bg-white/95 backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid h-[68px] max-w-lg grid-cols-5 px-2">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] bg-white/[0.97] backdrop-blur-xl lg:hidden">
+        <div className="mx-auto grid h-[60px] max-w-lg grid-cols-4 px-2">
           {primaryTabs.map((tab) => {
             const Icon = tab.icon;
             const active = currentView === tab.id;
@@ -109,10 +114,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => navigate(tab.id)}
-                className={`flex flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-bold transition ${active ? 'text-slate-950' : 'text-slate-400'}`}
+                className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-bold transition ${
+                  active ? 'text-slate-950' : 'text-slate-400'
+                }`}
               >
-                <span className={`grid h-8 w-10 place-items-center rounded-xl transition ${active ? 'bg-amber-100 text-amber-700' : ''}`}>
-                  <Icon className="h-[18px] w-[18px]" />
+                <span
+                  className={`grid h-8 w-10 place-items-center rounded-xl transition ${
+                    active ? 'bg-amber-100 text-amber-700' : ''
+                  }`}
+                >
+                  <Icon className="h-[17px] w-[17px]" />
                 </span>
                 {tab.label}
               </button>
@@ -122,11 +133,19 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <button
             type="button"
             onClick={() => setMoreOpen((value) => !value)}
-            className={`relative flex flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-bold transition ${moreActive || moreOpen ? 'text-slate-950' : 'text-slate-400'}`}
+            className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-bold transition ${
+              moreActive || moreOpen ? 'text-slate-950' : 'text-slate-400'
+            }`}
           >
-            <span className={`relative grid h-8 w-10 place-items-center rounded-xl transition ${moreActive || moreOpen ? 'bg-amber-100 text-amber-700' : ''}`}>
-              <MoreHorizontal className="h-[19px] w-[19px]" />
-              {mistakesCount > 0 && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />}
+            <span
+              className={`relative grid h-8 w-10 place-items-center rounded-xl transition ${
+                moreActive || moreOpen ? 'bg-amber-100 text-amber-700' : ''
+              }`}
+            >
+              <MoreHorizontal className="h-[18px] w-[18px]" />
+              {mistakesCount > 0 && (
+                <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+              )}
             </span>
             Thêm
           </button>

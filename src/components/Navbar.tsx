@@ -43,8 +43,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDailySession,
 }) => {
   return (
-    <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#f7f7f5]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-4 px-4 sm:px-6">
+    <header className="app-top-safe sticky top-0 z-40 border-b border-black/[0.06] bg-[#f7f7f5]/95 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[1240px] items-center gap-2 px-3 sm:h-16 sm:gap-4 sm:px-6">
         <button
           onClick={() => onNavigate('home')}
           className="flex shrink-0 items-center gap-3 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             src="/logo-mark.svg"
             alt=""
             aria-hidden="true"
-            className="h-9 w-9 rounded-xl shadow-sm"
+            className="h-8 w-8 rounded-[10px] shadow-sm sm:h-9 sm:w-9 sm:rounded-xl"
           />
           <span className="hidden sm:block">
             <span className="block text-sm font-black tracking-tight text-slate-950">DeutschStart</span>
@@ -103,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onNavigate('progress')}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-black/[0.06] bg-white px-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:border-amber-200 hover:text-amber-700"
+            className="flex h-8 items-center gap-1 rounded-lg border border-black/[0.06] bg-white px-2 text-[11px] font-bold text-slate-700 shadow-sm transition hover:border-amber-200 hover:text-amber-700 sm:h-9 sm:gap-1.5 sm:rounded-xl sm:px-2.5 sm:text-xs"
             title="Chuỗi ngày học"
           >
             <Flame className="h-4 w-4 fill-orange-400 text-orange-400" />
@@ -112,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onOpenSearch}
-            className="grid h-9 w-9 place-items-center rounded-xl border border-black/[0.06] bg-white text-slate-500 shadow-sm transition hover:text-slate-950"
+            className="hidden h-9 w-9 place-items-center rounded-xl border border-black/[0.06] bg-white text-slate-500 shadow-sm transition hover:text-slate-950 sm:grid"
             title="Tìm kiếm — Ctrl/⌘ K"
           >
             <Search className="h-4 w-4" />
