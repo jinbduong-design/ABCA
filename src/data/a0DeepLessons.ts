@@ -7,17 +7,17 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
       {
         "id": "o1",
         "kind": "knowledge",
-        "text": "Nhận ra các quy tắc âm quan trọng: W, V, J, ei, ie, eu/äu, sch, umlaut và ß."
+        "text": "Nhớ vài cách đọc quan trọng để không bị rối khi nhìn chữ tiếng Đức."
       },
       {
         "id": "o2",
         "kind": "production",
-        "text": "Đọc được các từ A0 ngắn bằng quy tắc mặt chữ thay vì đoán theo tiếng Anh."
+        "text": "Nghe và đọc theo một số từ rất cơ bản."
       },
       {
         "id": "o3",
         "kind": "error_avoidance",
-        "text": "Không đọc W như /w/ và không nhầm ei với ie."
+        "text": "Phân biệt được W, ei và ie ở mức cơ bản."
       }
     ],
     "warmup": [
@@ -56,8 +56,8 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
       {
         "id": "c01",
         "title": "W, V và J",
-        "explanation": "Ba chữ này dễ bị người Việt đọc theo tiếng Anh. Hãy tách chúng thành ba quy tắc đơn giản.",
-        "pattern": "W → /v/ · V → /f/ · J → /y/",
+        "explanation": "Chỉ cần nhớ ba mẹo này trước. Chưa cần hiểu ký hiệu phát âm.",
+        "pattern": "W ≈ v · V ≈ f · J ≈ y",
         "examples": [
           {
             "german": "Wasser",
@@ -77,9 +77,9 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
             "id": "c01q",
             "kind": "choice",
             "skill": "pronunciation",
-            "prompt": "“ja” bắt đầu gần âm nào?",
+            "prompt": "Trong “ja”, chữ J nghe gần âm nào?",
             "answer": "y",
-            "explanation": "J trong ja đọc gần /y/.",
+            "explanation": "J trong “ja” nghe gần giống âm y.",
             "difficulty": 1,
             "options": [
               "y",
@@ -99,8 +99,8 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
       {
         "id": "c02",
         "title": "ei, ie và eu",
-        "explanation": "Ba tổ hợp này xuất hiện rất thường xuyên. Học như một cụm âm thay vì đánh vần từng chữ.",
-        "pattern": "ei → /ai/ · ie → /iː/ · eu/äu → /oi/",
+        "explanation": "Hãy coi mỗi cụm là một âm riêng. Chỉ cần nghe và nhớ gần đúng.",
+        "pattern": "ei ≈ ai · ie ≈ ii · eu/äu ≈ oi",
         "examples": [
           {
             "german": "mein",
@@ -120,9 +120,9 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
             "id": "c02q",
             "kind": "input",
             "skill": "pronunciation",
-            "prompt": "Gõ tổ hợp chữ phát âm /i dài/.",
+            "prompt": "Cụm chữ nào nghe gần như “ii” kéo dài?",
             "answer": "ie",
-            "explanation": "ie thường cho âm /iː/.",
+            "explanation": "ie thường nghe gần như “ii” kéo dài.",
             "difficulty": 1,
             "acceptedAnswers": [
               "IE"
@@ -139,8 +139,8 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
       {
         "id": "c03",
         "title": "sch, ch và ß",
-        "explanation": "Ở A0 chỉ cần nhận biết: sch gần /sh/, ß đọc như ss. Âm ch sẽ được luyện sâu hơn ở bài sau.",
-        "pattern": "sch → /sh/ · ß → /s/ kéo nhẹ",
+        "explanation": "Ở bài đầu chỉ cần nhớ: sch nghe gần “sh”, còn ß đọc gần như ss.",
+        "pattern": "sch ≈ sh · ß ≈ ss",
         "examples": [
           {
             "german": "Schule",
@@ -156,9 +156,9 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
             "id": "c03q",
             "kind": "choice",
             "skill": "pronunciation",
-            "prompt": "“Schule” bắt đầu gần âm nào?",
+            "prompt": "“Schule” bắt đầu nghe gần âm nào?",
             "answer": "sh",
-            "explanation": "sch đọc gần /sh/.",
+            "explanation": "sch nghe gần giống “sh”.",
             "difficulty": 1,
             "options": [
               "sh",
@@ -176,9 +176,9 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
         "id": "d01",
         "kind": "choice",
         "skill": "pronunciation",
-        "prompt": "W trong “wohnen” đọc gần âm nào?",
+        "prompt": "Trong “wohnen”, chữ W nghe gần âm nào?",
         "answer": "v",
-        "explanation": "W → /v/.",
+        "explanation": "W nghe gần âm v.",
         "difficulty": 1,
         "options": [
           "v",
@@ -191,9 +191,9 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
         "id": "d02",
         "kind": "choice",
         "skill": "pronunciation",
-        "prompt": "V trong “Vater” đọc gần âm nào?",
+        "prompt": "Trong “Vater”, chữ V nghe gần âm nào?",
         "answer": "f",
-        "explanation": "V thường → /f/.",
+        "explanation": "V trong từ này nghe gần âm f.",
         "difficulty": 1,
         "options": [
           "f",
@@ -206,18 +206,18 @@ export const DEEP_A0_LESSONS: Record<string, DeepLesson> = {
         "id": "d03",
         "kind": "input",
         "skill": "pronunciation",
-        "prompt": "Gõ tổ hợp chữ phát âm /ai/.",
+        "prompt": "Cụm chữ nào nghe gần như “ai”?",
         "answer": "ei",
-        "explanation": "ei → /ai/.",
+        "explanation": "ei nghe gần như “ai”.",
         "difficulty": 1
       },
       {
         "id": "d04",
         "kind": "input",
         "skill": "pronunciation",
-        "prompt": "Gõ tổ hợp chữ phát âm /i dài/.",
+        "prompt": "Cụm chữ nào nghe gần như “ii”?",
         "answer": "ie",
-        "explanation": "ie → /iː/.",
+        "explanation": "ie nghe gần như “ii” kéo dài.",
         "difficulty": 1
       },
       {
