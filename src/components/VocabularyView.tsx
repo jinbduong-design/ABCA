@@ -82,6 +82,7 @@ export const VocabularyView: React.FC<VocabularyViewProps> = ({ onOpenNotes }) =
     setFavorites((current) => {
       const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
       localStorage.setItem('deutsch_start_fav_words', JSON.stringify(next));
+      storageService.markExternalChange();
       return next;
     });
   };

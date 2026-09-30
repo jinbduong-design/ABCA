@@ -14,6 +14,7 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { NotesModal } from './components/NotesModal';
 import { DailyStudySessionModal } from './components/DailyStudySessionModal';
 import { storageService } from './services/storageService';
+import { personalCloudSyncService } from './services/personalCloudSyncService';
 import { COURSES_DATA } from './data/coursesData';
 import { UserProgress, Lesson } from './types';
 
@@ -38,6 +39,7 @@ export default function App() {
 
   useEffect(() => {
     refreshProgress();
+    personalCloudSyncService.start();
     return storageService.subscribe(refreshProgress);
   }, []);
 

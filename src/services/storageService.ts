@@ -18,6 +18,7 @@ const STORAGE_KEYS = {
 };
 
 const PERSONAL_STORAGE_PREFIXES = ['deutschstart_', 'deutsch_start_'];
+const LOCAL_UPDATED_AT_KEY = 'deutschstart_local_updated_at_v1';
 
 export interface DeutschStartBackup {
   format: 'deutschstart-backup';
@@ -96,6 +97,27 @@ class StorageService {
     this.listeners.forEach((cb) => cb());
   }
 
+  private markChanged() {
+    localStorage.setItem(LOCAL_UPDATED_AT_KEY, new Date().toISOString());
+  }
+
+  public getLastChangedAt(): string | null {
+    return localStorage.getItem(LOCAL_UPDATED_AT_KEY);
+  }
+
+  public ensureLastChangedAt(): string {
+    const existing = this.getLastChangedAt();
+    if (existing) return existing;
+    const now = new Date().toISOString();
+    localStorage.setItem(LOCAL_UPDATED_AT_KEY, now);
+    return now;
+  }
+
+  public markExternalChange() {
+    this.markChanged();
+    this.notify();
+  }
+
   private loadProgress(): UserProgress {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.PROGRESS);
@@ -123,6 +145,7 @@ class StorageService {
       this.progress.totalStudyTimeMinutes = this.progress.totalStudyMinutes;
       this.progress.completedLessonIds = this.progress.completedLessons;
       localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(this.progress));
+      this.markChanged();
       this.notify();
     } catch (e) {
       console.error('Failed to save progress', e);
@@ -145,6 +168,7 @@ class StorageService {
   private saveMistakes() {
     try {
       localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(this.mistakes || []));
+      this.markChanged();
       this.notify();
     } catch (e) {
       console.error('Failed to save mistakes', e);
@@ -167,6 +191,7 @@ class StorageService {
   private saveNotes() {
     try {
       localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(this.notes || []));
+      this.markChanged();
       this.notify();
     } catch (e) {
       console.error('Failed to save notes', e);
@@ -191,6 +216,7 @@ class StorageService {
   private saveFlashcards() {
     try {
       localStorage.setItem(STORAGE_KEYS.FLASHCARDS, JSON.stringify(this.flashcards));
+      this.markChanged();
       this.notify();
     } catch (e) {
       console.error('Failed to save flashcards', e);
@@ -445,6 +471,7 @@ class StorageService {
     localStorage.removeItem('deutschstart_deep_mastery_v2');
     localStorage.removeItem('deutsch_start_fav_words');
     this.flashcards = this.loadFlashcards();
+    this.markChanged();
     this.notify();
   }
 }

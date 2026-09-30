@@ -14,6 +14,7 @@ import {
 import { UserProgress } from '../types';
 import { COURSES_DATA } from '../data/coursesData';
 import { storageService } from '../services/storageService';
+import { PersonalCloudSyncCard } from './PersonalCloudSyncCard';
 
 interface ProgressViewProps {
   progress: UserProgress;
@@ -104,6 +105,8 @@ export const ProgressView: React.FC<ProgressViewProps> = ({ progress, onResetPro
       <section className="mt-7 rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-amber-700" /><h2 className="text-sm font-black text-slate-950">Lộ trình A0 → A2</h2></div><div className="mt-5 space-y-5">{levelStats.map((level) => <div key={level.level}><div className="flex items-center justify-between gap-3 text-xs"><div><span className="font-black text-slate-950">{level.level}</span><span className="ml-2 font-semibold text-slate-400">{level.title}</span></div><span className="font-black text-slate-500">{level.completed}/{level.total}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-amber-500" style={{ width: `${level.pct}%` }} /></div></div>)}</div></section>
 
       <section className="mt-4 rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><RotateCcw className="h-4 w-4 text-blue-600" /><h2 className="text-sm font-black text-slate-950">Ghi nhớ từ vựng</h2></div><span className="text-[10px] font-bold text-slate-400">Leitner 1 → 5</span></div><div className="mt-5 grid grid-cols-5 gap-2">{[1,2,3,4,5].map((box) => { const count = srsDistribution[box] || 0; const pct = (count / maxSrs) * 100; return <div key={box} className="flex flex-col items-center"><div className="flex h-24 w-full items-end justify-center rounded-xl bg-slate-50 px-2 pb-2"><div className="w-full rounded-lg bg-blue-500/80" style={{ height: `${Math.max(count ? 10 : 2, pct)}%` }} /></div><p className="mt-2 text-sm font-black text-slate-900">{count}</p><p className="text-[9px] font-black uppercase text-slate-400">Hộp {box}</p></div>; })}</div></section>
+
+      <PersonalCloudSyncCard />
 
       <section className="mt-7 rounded-[22px] border border-black/[0.06] bg-white p-5 shadow-sm">
         <div className="flex items-start gap-3">

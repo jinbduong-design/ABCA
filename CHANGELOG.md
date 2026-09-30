@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.0 — 2026-09-30
+- Thêm Firebase personal sync theo mô hình local-first: app vẫn dùng localStorage để chạy nhanh/offline, Firestore dùng làm backup/sync.
+- Thêm Google Sign-in và khóa cloud bằng VITE_FIREBASE_ALLOWED_UID; khi chưa cấu hình UID app không tự upload dữ liệu.
+- Tự đồng bộ sau thay đổi local với debounce khoảng 1,5 giây và tự so sánh thời điểm cập nhật khi đăng nhập trên thiết bị khác.
+- Thêm nút Sao lưu ngay, Khôi phục cloud, trạng thái lần sync gần nhất và hiển thị/copy Firebase UID trong tab Tiến độ.
+- Theo dõi thay đổi của progress, SRS, mistakes, notes, favorites và Deep Lesson mastery để kích hoạt cloud sync.
+- Thêm template Firestore Rules chỉ cho đúng UID cá nhân đọc/ghi tại users/<uid>/appState/main.
+- Thêm tài liệu cấu hình Firebase và các biến VITE_FIREBASE_*.
+- Export/Import JSON của v0.1.1 tiếp tục được giữ làm lớp backup thứ hai.
+- Version hiển thị trong app tăng lên v0.2.0.
+
 ## v0.1.1 — 2026-09-30
 - Thêm Export toàn bộ dữ liệu cá nhân DeutschStart ra file JSON.
 - Thêm Import/Khôi phục từ file JSON với xác nhận trước khi ghi đè dữ liệu hiện tại.

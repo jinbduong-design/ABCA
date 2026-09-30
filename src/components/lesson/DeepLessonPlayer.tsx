@@ -103,6 +103,7 @@ function saveMastery(record: DeepLessonMasteryRecord) {
       attempts: (previous?.attempts || 0) + 1,
     };
     localStorage.setItem(MASTERY_KEY, JSON.stringify(map));
+    storageService.markExternalChange();
   } catch {
     // Mastery persistence is helpful but must never block the lesson.
   }
