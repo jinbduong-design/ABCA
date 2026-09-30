@@ -365,13 +365,10 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
     stats: Record<string, { correct: number; total: number }>
   ) => {
     if (!beginnerGuided) return hasPassedLesson(lesson.id, scoreState, stats);
-    const pct = getStagePercentages(scoreState);
     return (
       scoreState.drill.total > 0 &&
       scoreState.mastery.total > 0 &&
-      scoreState.production.total > 0 &&
-      pct.drill >= 50 &&
-      pct.mastery >= 50
+      scoreState.production.total > 0
     );
   };
 
@@ -1407,7 +1404,9 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                     )}
                   </div>
                   <h2 className="mt-4 text-3xl font-black text-slate-950">
-                    {overall}% · {scoreLabel(overall)}
+                    {beginnerGuided
+                      ? 'Hoàn thành lượt học đầu tiên'
+                      : `${overall}% · ${scoreLabel(overall)}`}
                   </h2>
                   <p className="mt-2 text-sm text-slate-500">
                     {passed
@@ -1420,30 +1419,29 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {(beginnerGuided
-                    ? [
-                        ['Luyện', stagePct.drill],
-                        ['Viết', stagePct.production],
-                        ['Ôn cuối', stagePct.mastery],
-                      ]
-                    : [
-                        ['Luyện', stagePct.drill],
-                        ['Tự dùng', stagePct.production],
-                        ['Tình huống', stagePct.challenge],
-                        ['Kiểm tra', stagePct.mastery],
-                      ]
-                  ).map(([label, value]) => (
-                    <div key={String(label)} className={panelClass}>
-                      <p className="text-xs font-bold text-slate-400">
-                        {String(label)}
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-slate-950">
-                        {Number(value)}%
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {beginnerGuided ? (
+                  <div className="rounded-2xl bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+                    Lượt đầu chỉ cần <strong>nghe, hiểu và thử</strong>. Những câu bạn chưa biết đã được ghi lại để ôn sau — không cần đạt điểm cao ngay.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      ['Luyện', stagePct.drill],
+                      ['Tự dùng', stagePct.production],
+                      ['Tình huống', stagePct.challenge],
+                      ['Kiểm tra', stagePct.mastery],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className={panelClass}>
+                        <p className="text-xs font-bold text-slate-400">
+                          {String(label)}
+                        </p>
+                        <p className="mt-1 text-2xl font-black text-slate-950">
+                          {Number(value)}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {graduationDomains.length ? (
                   <div className={panelClass}>
