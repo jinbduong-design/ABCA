@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.5 — 2026-09-30
+- Khóa zoom in/out trên mobile/PWA bằng viewport cố định: maximum-scale=1 và user-scalable=no.
+- Chặn pinch zoom trên thiết bị cảm ứng bằng CSS touch-action và listener gesture/touch đa điểm.
+- Giữ scroll dọc bình thường để học và cuộn nội dung không bị ảnh hưởng.
+- Dùng touch-action: manipulation cho nút, link và form để hạn chế double-tap zoom nhưng vẫn giữ thao tác chạm.
+- Ép input/textarea/select tối thiểu 16px trên mobile để iPhone không tự zoom khi focus ô nhập.
+- Giữ nguyên safe-area Dynamic Island và khóa trượt ngang từ v0.2.4.
+- Version hiển thị và service worker cache tăng lên v0.2.5.
+
 ## v0.2.4 — 2026-09-30
 - Sửa màn bài học full-screen trên iPhone/PWA bị Dynamic Island và đồng hồ che phần header.
 - Thêm safe-area riêng cho cả Deep Lesson và Legacy Lesson, không phụ thuộc safe-area của màn app phía sau.
