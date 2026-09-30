@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.1 — 2026-09-30
+- Làm lại Home theo hướng beginner-first: người mới thấy ngay một nút “Bắt đầu bài đầu tiên” thay vì phải tự chọn Từ vựng, Ngữ pháp hay AI.
+- Home tự chọn bài chưa hoàn thành đầu tiên trong toàn bộ lộ trình A0 → A1 → A2 và sau mỗi bài tự chuyển sang bài kế tiếp.
+- Thêm kế hoạch học 3 bước rõ ràng: Bài chính → Ôn từ → Luyện nói.
+- Các công cụ AI Tutor, phát âm, lỗi sai và tra cứu được hạ xuống thành công cụ phụ để giảm rối cho người mới.
+- Roadmap khóa các bài tương lai; chỉ bài đã học và đúng bài tiếp theo mới mở được.
+- Bài đã hoàn thành vẫn có thể mở lại để ôn.
+- Cập nhật service worker cache và version hiển thị trong app lên v0.2.1.
+
 ## v0.2.0 — 2026-09-30
 - Thêm Firebase personal sync theo mô hình local-first: app vẫn dùng localStorage để chạy nhanh/offline, Firestore dùng làm backup/sync.
 - Thêm Google Sign-in và khóa cloud bằng VITE_FIREBASE_ALLOWED_UID; khi chưa cấu hình UID app không tự upload dữ liệu.
