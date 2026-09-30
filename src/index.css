@@ -13,6 +13,7 @@
     overflow-x: hidden;
     background: #f7f7f5;
     overscroll-behavior-x: none;
+    touch-action: pan-y;
   }
 
   body {
@@ -29,7 +30,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
-    touch-action: pan-y pinch-zoom;
+    touch-action: pan-y;
   }
 
   #root {
@@ -38,6 +39,7 @@
     max-width: 100vw;
     min-height: 100dvh;
     overflow-x: hidden;
+    touch-action: pan-y;
   }
 
   img,
@@ -51,6 +53,14 @@
   textarea,
   select {
     font: inherit;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
   }
 
   button {
@@ -118,6 +128,12 @@
 @media (max-width: 767px) {
   * {
     min-width: 0;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 
   .mobile-focus-scroll {
