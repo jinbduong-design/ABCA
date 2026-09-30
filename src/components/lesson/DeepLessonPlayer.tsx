@@ -72,10 +72,10 @@ const emptyScores = (): DeepLessonScoreState => ({
 
 const macroStages = [
   { label: 'Bắt đầu', ids: ['goal', 'warmup'] },
-  { label: 'Học', ids: ['learn', 'concept'] },
+  { label: 'Làm quen', ids: ['learn', 'concept'] },
   { label: 'Luyện', ids: ['drill'] },
-  { label: 'Dùng', ids: ['production', 'speaking', 'challenge'] },
-  { label: 'Kiểm tra', ids: ['mastery', 'remediation', 'review'] },
+  { label: 'Nói', ids: ['production', 'speaking', 'challenge'] },
+  { label: 'Xong', ids: ['mastery', 'remediation', 'review'] },
 ] as const;
 
 function readSession(lessonId: string): SessionSnapshot | null {
@@ -165,8 +165,29 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
   onClose,
   onFinishLesson,
 }) => {
+  const learnerProgress = storageService.getProgress();
+  const beginnerGuided =
+    lesson.level === 'A0' &&
+    (lesson.lessonNumber <= 3 || (learnerProgress.completedLessons || []).length < 3);
+
+  const guidedWarmup = beginnerGuided ? [] : deep.warmup;
+  const easyDrills = deep.drills.filter((exercise) => (exercise.difficulty || 1) === 1);
+  const guidedDrills = beginnerGuided
+    ? (easyDrills.length ? easyDrills : deep.drills).slice(0, 4)
+    : deep.drills;
+  const guidedProduction = beginnerGuided ? deep.production.slice(0, 1) : deep.production;
+  const guidedSpeaking = beginnerGuided ? deep.speaking.slice(0, 1) : deep.speaking;
+  const easyMastery = deep.mastery.filter((exercise) => (exercise.difficulty || 1) === 1);
+  const guidedMastery = beginnerGuided
+    ? (easyMastery.length ? easyMastery : deep.mastery).slice(0, 3)
+    : deep.mastery;
+
   const resume = useMemo(() => readSession(lesson.id), [lesson.id]);
-  const [stage, setStage] = useState<StageId>(resume?.stage || 'goal');
+  const initialStage: StageId =
+    beginnerGuided && resume?.stage === 'warmup'
+      ? 'learn'
+      : resume?.stage || 'goal';
+  const [stage, setStage] = useState<StageId>(initialStage);
   const [itemIndex, setItemIndex] = useState(resume?.itemIndex || 0);
   const [subIndex, setSubIndex] = useState(resume?.subIndex || 0);
   const [scores, setScores] = useState<DeepLessonScoreState>(
@@ -179,7 +200,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
     Record<string, { correct: number; total: number }>
   >(resume?.skillStats || {});
   const [resolved, setResolved] = useState(false);
-  const [showMeaning, setShowMeaning] = useState(false);
+  const [showMeaning, setShowMeaning] = useState(beginnerGuided);
   const [productionText, setProductionText] = useState('');
   const [productionFeedback, setProductionFeedback] = useState<{
     ok: boolean;
@@ -223,7 +244,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
   const resetTransient = () => {
     setResolved(false);
-    setShowMeaning(false);
+    setShowMeaning(beginnerGuided);
     setProductionText('');
     setProductionFeedback(null);
     setSpeakingTranscript('');
@@ -307,11 +328,11 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
   const currentConcept = deep.concepts[itemIndex];
   const currentCheckpoint = currentConcept?.checkpoint[subIndex];
-  const currentDrill = deep.drills[itemIndex];
-  const currentProduction = deep.production[itemIndex];
-  const currentSpeaking = deep.speaking[itemIndex];
+  const currentDrill = guidedDrills[itemIndex];
+  const currentProduction = guidedProduction[itemIndex];
+  const currentSpeaking = guidedSpeaking[itemIndex];
   const currentTurn = deep.challenge.turns[itemIndex];
-  const currentMastery = deep.mastery[itemIndex];
+  const currentMastery = guidedMastery[itemIndex];
 
   const applicableRemediation = useMemo(() => {
     const weakSkills = Object.entries(wrongSkills)
@@ -330,6 +351,29 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
     [applicableRemediation]
   );
   const currentRemediation = remediationExercises[itemIndex];
+
+  const getCurrentOverallScore = (scoreState: DeepLessonScoreState) => {
+    if (!beginnerGuided) return getOverallScore(scoreState);
+    const pct = getStagePercentages(scoreState);
+    const values = [pct.drill, pct.mastery];
+    if (scoreState.production.total > 0) values.push(pct.production);
+    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+  };
+
+  const passesCurrentLesson = (
+    scoreState: DeepLessonScoreState,
+    stats: Record<string, { correct: number; total: number }>
+  ) => {
+    if (!beginnerGuided) return hasPassedLesson(lesson.id, scoreState, stats);
+    const pct = getStagePercentages(scoreState);
+    return (
+      scoreState.drill.total > 0 &&
+      scoreState.mastery.total > 0 &&
+      scoreState.production.total > 0 &&
+      pct.drill >= 50 &&
+      pct.mastery >= 50
+    );
+  };
 
   const recordProduction = () => {
     if (!currentProduction || !productionText.trim()) return;
@@ -416,8 +460,8 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
   };
 
   const finalizeLesson = () => {
-    const overall = getOverallScore(scores);
-    const passed = hasPassedLesson(lesson.id, scores, skillStats);
+    const overall = getCurrentOverallScore(scores);
+    const passed = passesCurrentLesson(scores, skillStats);
     const sortedSkills = Object.entries(skillStats)
       .filter(([, stat]) => stat.total > 0)
       .map(([skill, stat]) => ({
@@ -576,11 +620,13 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
               <button
                 type="button"
-                onClick={() => move(deep.warmup.length ? 'warmup' : 'learn')}
+                onClick={() => move(guidedWarmup.length ? 'warmup' : 'learn')}
                 className="w-full rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-extrabold text-white hover:bg-slate-800"
               >
                 {resume && resume.stage !== 'goal'
-                  ? 'Bắt đầu lại theo lộ trình'
+                  ? 'Bắt đầu lại từ đầu'
+                  : beginnerGuided
+                  ? 'Bắt đầu chậm từng bước'
                   : 'Bắt đầu bài học'}
               </button>
             </div>
@@ -590,7 +636,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
             <div className="mx-auto max-w-2xl space-y-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                  Khởi động · {itemIndex + 1}/{deep.warmup.length}
+                  Khởi động · {itemIndex + 1}/{guidedWarmup.length}
                 </p>
                 <h2 className="mt-2 text-xl font-black text-slate-950">
                   Gọi lại kiến thức cũ
@@ -602,10 +648,10 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
 
               <div className={panelClass}>
                 <ExerciseRenderer
-                  key={deep.warmup[itemIndex]?.id}
-                  exercise={deep.warmup[itemIndex]}
+                  key={guidedWarmup[itemIndex]?.id}
+                  exercise={guidedWarmup[itemIndex]}
                   onResolved={(ok) =>
-                    finishUnscoredExercise(deep.warmup[itemIndex], ok)
+                    finishUnscoredExercise(guidedWarmup[itemIndex], ok)
                   }
                 />
               </div>
@@ -614,7 +660,7 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    if (itemIndex + 1 < deep.warmup.length) {
+                    if (itemIndex + 1 < guidedWarmup.length) {
                       resetTransient();
                       setItemIndex((p) => p + 1);
                       persist('warmup', itemIndex + 1, 0);
