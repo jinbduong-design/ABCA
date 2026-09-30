@@ -17,6 +17,19 @@ const STORAGE_KEYS = {
   FLASHCARDS: 'deutschstart_flashcards_v2',
 };
 
+const PERSONAL_STORAGE_PREFIXES = ['deutschstart_', 'deutsch_start_'];
+
+export interface DeutschStartBackup {
+  format: 'deutschstart-backup';
+  schemaVersion: 1;
+  exportedAt: string;
+  storage: Record<string, string>;
+}
+
+function isPersonalStorageKey(key: string) {
+  return PERSONAL_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
 function deriveCurrentLevel(completedLessons: string[]): LevelId {
   const completed = new Set(completedLessons || []);
   const levelComplete = (level: LevelId) =>
@@ -358,6 +371,66 @@ class StorageService {
     }
 
     this.saveFlashcards();
+  }
+
+  public createBackup(): DeutschStartBackup {
+    const snapshot: Record<string, string> = {};
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key || !isPersonalStorageKey(key)) continue;
+      const value = localStorage.getItem(key);
+      if (value !== null) snapshot[key] = value;
+    }
+
+    return {
+      format: 'deutschstart-backup',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      storage: snapshot,
+    };
+  }
+
+  public restoreBackup(input: unknown): number {
+    if (!input || typeof input !== 'object') {
+      throw new Error('File backup không hợp lệ.');
+    }
+
+    const backup = input as Partial<DeutschStartBackup>;
+    if (
+      backup.format !== 'deutschstart-backup' ||
+      backup.schemaVersion !== 1 ||
+      !backup.storage ||
+      typeof backup.storage !== 'object'
+    ) {
+      throw new Error('Đây không phải file backup DeutschStart hợp lệ.');
+    }
+
+    const entries = Object.entries(backup.storage).filter(
+      ([key, value]) => isPersonalStorageKey(key) && typeof value === 'string'
+    ) as [string, string][];
+
+    if (entries.length === 0) {
+      throw new Error('File backup không chứa dữ liệu DeutschStart.');
+    }
+
+    const currentKeys: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key && isPersonalStorageKey(key)) currentKeys.push(key);
+    }
+
+    currentKeys.forEach((key) => localStorage.removeItem(key));
+    entries.forEach(([key, value]) => localStorage.setItem(key, value));
+
+    this.progress = this.loadProgress();
+    this.mistakes = this.loadMistakes();
+    this.notes = this.loadNotes();
+    this.flashcards = this.loadFlashcards();
+    this.checkDailyStreak();
+    this.notify();
+
+    return entries.length;
   }
 
   public resetAll() {
