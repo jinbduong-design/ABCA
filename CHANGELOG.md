@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.0.5 — 2026-09-30
+- Nút đặt lại tiến độ giờ xóa đúng toàn bộ dữ liệu học cục bộ.
+- Xóa thêm phiên Deep Lesson đang dở, mastery của Deep Lesson và danh sách từ yêu thích.
+- Tránh tình trạng reset xong nhưng mở lại bài/từ vựng vẫn thấy dữ liệu cũ.
+
 ## v0.0.4 — 2026-09-30
 - Loại bỏ toàn bộ kết quả AI giả khi Gemini/API không khả dụng.
 - Chat, hội thoại, phân tích câu và chấm bài giờ báo rõ AI đang tạm thời không khả dụng thay vì tự khen câu đúng hoặc tự cho điểm.

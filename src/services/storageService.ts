@@ -363,6 +363,9 @@ class StorageService {
     localStorage.removeItem(STORAGE_KEYS.MISTAKES);
     localStorage.removeItem(STORAGE_KEYS.NOTES);
     localStorage.removeItem(STORAGE_KEYS.FLASHCARDS);
+    localStorage.removeItem('deutschstart_deep_lesson_session_v2');
+    localStorage.removeItem('deutschstart_deep_mastery_v2');
+    localStorage.removeItem('deutsch_start_fav_words');
     this.flashcards = this.loadFlashcards();
     this.notify();
   }
