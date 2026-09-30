@@ -13,6 +13,17 @@ export interface ConversationResponse {
     explanation: string;
   };
   vietnameseHint?: string;
+  microFeedback?: {
+    whatWentWell?: string;
+    oneFix?: string;
+    usefulPhrase?: string;
+  };
+  missionProgress?: {
+    percent: number;
+    achieved?: string[];
+    nextMission?: string;
+    complete?: boolean;
+  };
 }
 
 export interface WritingCorrectionResponse {
@@ -68,6 +79,11 @@ export async function askAITutor(params: {
 export async function sendConversationMessage(params: {
   scenarioTitle: string;
   scenarioContext: string;
+  scenarioGoal: string;
+  userLevel: string;
+  practiceMode: 'guided' | 'natural' | 'challenge';
+  suggestedPhrases: { german: string; vietnamese: string }[];
+  turnNumber: number;
   userMessage: string;
   history: { sender: string; text: string }[];
 }): Promise<ConversationResponse> {
