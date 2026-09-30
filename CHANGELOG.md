@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.7 — 2026-09-30
+- Bỏ khung chat kiểu popup/card trong Hội thoại; phiên đang luyện giờ nằm trực tiếp trong màn hình app và dùng toàn bộ vùng nội dung.
+- Tin nhắn tiếng Đức hiển thị English translation ngay bên dưới; tiếng Việt mặc định ẩn và chỉ mở bằng “Không hiểu? Xem tiếng Việt”.
+- Gợi ý A0 ưu tiên German + English; tiếng Việt nằm sau nút riêng.
+- Thêm English translation vào dữ liệu hội thoại A0 mở đầu và response contract của AI.
+- Sửa nguyên nhân AI trên Vercel báo “tạm thời không khả dụng”: thêm Vercel Functions thật cho /api/tutor/chat, /api/conversation/message, /api/tutor/analyze-sentence, /api/tutor/correct-writing và /api/health.
+- Tách helper Gemini dùng chung cho Vercel, hỗ trợ GEMINI_API_KEY cùng hai alias GOOGLE_API_KEY và GOOGLE_GENERATIVE_AI_API_KEY.
+- Cập nhật danh sách fallback model theo Gemini hiện tại: 3.8 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite.
+- Nếu Vercel chưa có API key, backend giờ trả lỗi rõ “cần thêm GEMINI_API_KEY” thay vì chỉ báo AI chung chung.
+- Cập nhật .env.example để nhắc AI Studio secret không tự đi theo Vercel.
+- Version hiển thị và service worker cache tăng lên v0.2.7.
+
 ## v0.2.6 — 2026-09-30
 - Đưa Hội thoại ra tab chính trên mobile: Học · Lộ trình · Hội thoại · Ôn từ · Thêm.
 - Làm lại màn Hội thoại theo hướng luyện giao tiếp có mục tiêu thay vì chỉ là cửa sổ chat.
