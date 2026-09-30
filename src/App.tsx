@@ -116,7 +116,9 @@ export default function App() {
         )}
         {currentView === 'vocab' && <VocabularyView onOpenNotes={handleOpenNotes} />}
         {currentView === 'grammar' && <GrammarView />}
-        {currentView === 'conversation' && <ConversationView />}
+        {currentView === 'conversation' && (
+          <ConversationView currentLevel={progress.currentLevel || 'A0'} />
+        )}
         {currentView === 'tutor' && <AITutorView />}
         {currentView === 'mistakes' && <MistakesView />}
         {currentView === 'progress' && (
