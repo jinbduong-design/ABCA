@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.0 — 2026-09-30
+- Hoàn thiện bộ nhận diện DeutschStart cho web và màn hình điện thoại.
+- Thêm logo DE đồng bộ với giao diện, wordmark, icon 192px, 512px và maskable icon cho Android.
+- Thêm Web App Manifest: tên cài đặt “DeutschStart”, chế độ standalone, theme/background color và metadata tiếng Việt.
+- Thêm cấu hình iPhone/iPad Add to Home Screen, Android install, favicon và metadata chia sẻ mạng xã hội.
+- Thêm service worker cơ bản: cache app shell để mở lại ổn định, không cache API và tự dọn cache version cũ.
+- Header dùng logo thật và hỗ trợ safe-area trên thiết bị có tai thỏ/Dynamic Island.
+- Package được đổi tên từ react-example thành deutschstart.
+- Version hiển thị trong app tăng lên v0.1.0.
+
 ## v0.0.9 — 2026-09-30
 - Hoàn thành lesson không còn cộng cứng 5 phút và 5 từ.
 - Thời gian học lấy từ `lesson.estimatedMinutes`; số từ học mới lấy từ danh sách vocabulary thật của lesson.

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" role="img" aria-labelledby="title">
+  <title id="title">DeutschStart</title>
+  <rect width="128" height="128" rx="30" fill="#0f172a"/>
+  <rect x="20" y="28" width="10" height="72" rx="5" fill="#f59e0b"/>
+  <text x="78" y="80" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="800" fill="#fffbeb">DE</text>
+  <rect x="53" y="94" width="50" height="4" rx="2" fill="#f59e0b"/>
+  <text x="158" y="68" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="800" fill="#0f172a">DeutschStart</text>
+  <text x="160" y="97" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#64748b">A0 → A2 · DEUTSCH LERNEN</text>
+</svg>

@@ -43,16 +43,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDailySession,
 }) => {
   return (
-    <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#f7f7f5]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#f7f7f5]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-4 px-4 sm:px-6">
         <button
           onClick={() => onNavigate('home')}
           className="flex shrink-0 items-center gap-3 rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           aria-label="Về trang chủ"
         >
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-950 text-[11px] font-black tracking-[0.12em] text-white shadow-sm">
-            DE
-          </span>
+          <img
+            src="/logo-mark.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-9 w-9 rounded-xl shadow-sm"
+          />
           <span className="hidden sm:block">
             <span className="block text-sm font-black tracking-tight text-slate-950">DeutschStart</span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
