@@ -529,9 +529,9 @@ export const DeepLessonPlayer: React.FC<DeepLessonPlayerProps> = ({
     'rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/75 p-0 backdrop-blur-sm sm:p-4">
-      <div className="flex min-h-screen w-full max-w-3xl flex-col bg-[#f8f8f6] sm:min-h-0 sm:max-h-[94vh] sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-2xl">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-[#f8f8f6]/95 px-4 py-3 backdrop-blur sm:rounded-t-3xl sm:px-6">
+    <div className="lesson-screen-safe fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/75 backdrop-blur-sm">
+      <div className="lesson-screen-panel flex w-full max-w-3xl flex-col overflow-hidden bg-[#f8f8f6] sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-2xl">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-[#f8f8f6]/95 px-4 py-3 backdrop-blur sm:rounded-t-3xl sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">

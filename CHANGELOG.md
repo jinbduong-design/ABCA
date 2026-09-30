@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.4 — 2026-09-30
+- Sửa màn bài học full-screen trên iPhone/PWA bị Dynamic Island và đồng hồ che phần header.
+- Thêm safe-area riêng cho cả Deep Lesson và Legacy Lesson, không phụ thuộc safe-area của màn app phía sau.
+- Khung bài học dùng đúng chiều cao vùng nhìn thấy sau khi trừ safe-area; không còn min-height 100vh đẩy nội dung lên dưới vùng hệ thống.
+- Header bài học được giữ cố định trong vùng an toàn, nút đóng và thanh tiến độ luôn nhìn thấy.
+- Khóa overflow của lớp phủ bài học; chỉ phần nội dung bài học cuộn dọc để giao diện mobile ổn định hơn.
+- Version hiển thị và service worker cache tăng lên v0.2.4.
+
 ## v0.2.3 — 2026-09-30
 - Thêm chế độ học có hướng dẫn cho người mới ở các bài A0 đầu tiên.
 - Người mới không còn bị hỏi warm-up kiến thức trước khi được dạy; bài bắt đầu bằng nghe, nhìn nghĩa và ví dụ.

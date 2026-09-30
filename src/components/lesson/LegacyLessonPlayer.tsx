@@ -125,9 +125,9 @@ export const LegacyLessonPlayer: React.FC<LegacyLessonPlayerProps> = ({
   const currentSpeaking = speaking[index];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/75 p-0 backdrop-blur-sm sm:p-4">
-      <div className="flex min-h-screen w-full max-w-2xl flex-col bg-[#f8f8f6] sm:min-h-0 sm:max-h-[94vh] sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-2xl">
-        <header className="border-b border-slate-200 px-4 py-3 sm:px-6">
+    <div className="lesson-screen-safe fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/75 backdrop-blur-sm">
+      <div className="lesson-screen-panel flex w-full max-w-2xl flex-col overflow-hidden bg-[#f8f8f6] sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-2xl">
+        <header className="shrink-0 border-b border-slate-200 px-4 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">
