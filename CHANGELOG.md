@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.7 — 2026-09-30
+- Hiển thị version hiện tại trực tiếp trên thanh đầu của app để kiểm tra nhanh bản đang chạy.
+- Thêm nguồn version dùng chung trong `src/version.ts`; từ các bản sau version hiển thị và `package.json` sẽ được tăng cùng nhau.
+
 ## v0.0.6 — 2026-09-30
 - Sửa lỗi lần đầu mở app toàn bộ từ vựng đều bị tính là “đến hạn ôn”.
 - Flashcard SRS giờ chỉ được tạo khi người học thực sự đánh giá một từ.

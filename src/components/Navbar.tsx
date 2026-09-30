@@ -12,6 +12,7 @@ import {
   Bot,
 } from 'lucide-react';
 import { UserProgress } from '../types';
+import { APP_VERSION } from '../version';
 
 interface NavbarProps {
   currentView: string;
@@ -57,6 +58,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
               A0 → A2
             </span>
+          </span>
+          <span
+            className="rounded-full border border-black/[0.06] bg-white px-1.5 py-0.5 text-[9px] font-black tracking-tight text-slate-400 shadow-sm"
+            title={`Phiên bản ứng dụng ${APP_VERSION}`}
+          >
+            v{APP_VERSION}
           </span>
         </button>
 
