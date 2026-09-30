@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock3,
+  Lock,
   Play,
   Target,
 } from 'lucide-react';
@@ -43,6 +44,13 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({ progress, onSelectLess
   const course = COURSES_DATA[selectedLevel] || COURSES_DATA.A0;
   const completedLessons = progress.completedLessons || [];
 
+  const globalNextId = useMemo(() => {
+    const orderedLessons = (['A0', 'A1', 'A2'] as const).flatMap((level) =>
+      COURSES_DATA[level].topics.flatMap((topic) => topic.lessons)
+    );
+    return orderedLessons.find((lesson) => !completedLessons.includes(lesson.id))?.id || null;
+  }, [completedLessons]);
+
   const summary = useMemo(() => {
     const allLessons = course.topics.flatMap((topic) => topic.lessons);
     const completed = allLessons.filter((lesson) => completedLessons.includes(lesson.id)).length;
@@ -77,7 +85,8 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({ progress, onSelectLess
     <div className="mx-auto max-w-3xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:pb-10 animate-fadeIn">
       <header className="mb-5">
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Lộ trình</p>
-        <h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">Biết mình đang ở đâu và học gì tiếp theo</h1>
+        <h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950 sm:text-3xl">Đi lần lượt từng bài — app sẽ mở bài tiếp theo cho bạn</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Bài đã học có thể mở lại. Bài phía trước sẽ khóa để người mới không phải tự đoán nên học gì.</p>
       </header>
 
       <div className="mb-4 grid grid-cols-3 rounded-2xl bg-slate-100 p-1">
@@ -107,7 +116,15 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({ progress, onSelectLess
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${summary.percent}%` }} /></div>
         <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-white/[0.06] px-4 py-3">
           <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[0.13em] text-slate-400">Tiếp theo</p><p className="mt-0.5 truncate text-sm font-bold text-white">{summary.next ? summary.next.titleVietnamese : 'Đã hoàn thành cấp độ'}</p></div>
-          {summary.next && <button onClick={() => onSelectLesson(summary.next!.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-slate-950"><Play className="ml-0.5 h-3.5 w-3.5 fill-current" /></button>}
+          {summary.next && summary.next.id === globalNextId ? (
+            <button onClick={() => onSelectLesson(summary.next!.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-slate-950">
+              <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+            </button>
+          ) : summary.next ? (
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-slate-500" title="Hoàn thành bài trước để mở">
+              <Lock className="h-3.5 w-3.5" />
+            </span>
+          ) : null}
         </div>
       </section>
 
@@ -134,13 +151,55 @@ export const RoadmapView: React.FC<RoadmapViewProps> = ({ progress, onSelectLess
                 <div className="border-t border-slate-100 px-3 pb-3 sm:px-4 sm:pb-4">
                   {topic.lessons.map((lesson, lessonIndex) => {
                     const completed = completedLessons.includes(lesson.id);
-                    const current = summary.next?.id === lesson.id;
+                    const current = globalNextId === lesson.id;
+                    const locked = !completed && !current;
                     const skill = skillLabel(lesson);
                     return (
-                      <button key={lesson.id} type="button" onClick={() => onSelectLesson(lesson.id)} className={`mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition sm:px-4 ${current ? 'bg-amber-50 ring-1 ring-amber-100' : 'hover:bg-slate-50'}`}>
-                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-black ${completed ? 'bg-emerald-50 text-emerald-700' : current ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-500'}`}>{completed ? <Check className="h-3.5 w-3.5" /> : lessonIndex + 1}</span>
-                        <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className={`truncate text-sm font-bold ${completed ? 'text-slate-500' : 'text-slate-900'}`}>{lesson.titleVietnamese}</p>{current && <span className="hidden rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase text-amber-700 min-[420px]:inline">Tiếp theo</span>}</div><div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-slate-400"><span>{skill}</span><span>·</span><span className="flex items-center gap-1"><Clock3 className="h-3 w-3" />{lesson.estimatedMinutes}p</span></div></div>
-                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${completed ? 'bg-emerald-50 text-emerald-600' : current ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-500'}`}>{completed ? <Check className="h-3.5 w-3.5" /> : <Play className="ml-0.5 h-3 w-3 fill-current" />}</span>
+                      <button
+                        key={lesson.id}
+                        type="button"
+                        disabled={locked}
+                        onClick={() => {
+                          if (!locked) onSelectLesson(lesson.id);
+                        }}
+                        className={`mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition sm:px-4 ${
+                          current
+                            ? 'bg-amber-50 ring-1 ring-amber-100'
+                            : locked
+                            ? 'cursor-not-allowed opacity-45'
+                            : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-black ${
+                          completed
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : current
+                            ? 'bg-slate-950 text-white'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {completed ? <Check className="h-3.5 w-3.5" /> : locked ? <Lock className="h-3.5 w-3.5" /> : lessonIndex + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className={`truncate text-sm font-bold ${completed ? 'text-slate-500' : locked ? 'text-slate-400' : 'text-slate-900'}`}>
+                              {lesson.titleVietnamese}
+                            </p>
+                            {current && <span className="hidden rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase text-amber-700 min-[420px]:inline">Học bài này</span>}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                            <span>{locked ? 'Hoàn thành bài trước để mở' : skill}</span>
+                            {!locked && <><span>·</span><span className="flex items-center gap-1"><Clock3 className="h-3 w-3" />{lesson.estimatedMinutes}p</span></>}
+                          </div>
+                        </div>
+                        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+                          completed
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : current
+                            ? 'bg-slate-950 text-white'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {completed ? <Check className="h-3.5 w-3.5" /> : current ? <Play className="ml-0.5 h-3 w-3 fill-current" /> : <Lock className="h-3.5 w-3.5" />}
+                        </span>
                       </button>
                     );
                   })}

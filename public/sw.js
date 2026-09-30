@@ -1,4 +1,4 @@
-const CACHE_NAME = 'deutschstart-v0.1.0';
+const CACHE_NAME = 'deutschstart-v0.2.1';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/logo-mark.svg', '/icon-192.png', '/icon-512.png', '/maskable-icon-512.png'];
 
 self.addEventListener('install', (event) => {
