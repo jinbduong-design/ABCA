@@ -1,6 +1,6 @@
 import {
   generateWithModelFallback,
-  requireGemini,
+  parseJsonText,
   sendAIUnavailable,
 } from '../_lib/gemini';
 
@@ -24,9 +24,6 @@ export default async function handler(req: any, res: any) {
   if (!userMessage || !String(userMessage).trim()) {
     return res.status(400).json({ error: 'Message is required' });
   }
-
-  const ai = requireGemini(res);
-  if (!ai) return;
 
   try {
     const modeRule =
@@ -103,13 +100,13 @@ Return JSON only:
   }
 }`;
 
-    const text = await generateWithModelFallback(ai, {
+    const text = await generateWithModelFallback({
       contents: prompt,
       responseMimeType: 'application/json',
       temperature: 0.55,
     });
 
-    const parsed = JSON.parse(text || '{}');
+    const parsed = parseJsonText(text);
     return res.status(200).json(parsed);
   } catch (error) {
     return sendAIUnavailable(res, error);
