@@ -1,6 +1,6 @@
 import {
   generateWithModelFallback,
-  requireGemini,
+  parseJsonText,
   sendAIUnavailable,
 } from '../_lib/gemini';
 
@@ -21,9 +21,6 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Message is required' });
   }
 
-  const ai = requireGemini(res);
-  if (!ai) return;
-
   try {
     const systemInstruction = `Bạn là gia sư tiếng Đức cho người Việt mới bắt đầu từ A0 đến A2.
 Giải thích bằng tiếng Việt ngắn, rõ, tránh thuật ngữ nếu không cần.
@@ -41,7 +38,7 @@ Học viên: ${message}
 
 Trả lời ngắn gọn, hữu ích và phù hợp người mới.`;
 
-    const reply = await generateWithModelFallback(ai, {
+    const reply = await generateWithModelFallback({
       contents: conversationPrompt,
       systemInstruction,
       temperature: 0.65,
