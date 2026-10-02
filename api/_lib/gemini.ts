@@ -1,6 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-import { getVercelOidcToken } from '@vercel/oidc';
-
 export const DIRECT_GEMINI_MODELS = [
   'gemini-3.8-flash',
   'gemini-3.5-flash-lite',
@@ -20,24 +17,6 @@ export interface GenerateOptions {
   temperature?: number;
 }
 
-function getDirectGeminiClient(): GoogleGenAI | null {
-  const apiKey =
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-
-  if (!apiKey) return null;
-
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'deutschstart-vercel',
-      },
-    },
-  });
-}
-
 function promptFromContents(contents: any): string {
   if (typeof contents === 'string') return contents;
   try {
@@ -47,17 +26,97 @@ function promptFromContents(contents: any): string {
   }
 }
 
-async function getGatewayCredential(): Promise<string | null> {
-  if (process.env.AI_GATEWAY_API_KEY) {
-    return process.env.AI_GATEWAY_API_KEY;
+function readHeader(req: any, name: string): string {
+  const headers = req?.headers || {};
+  const value =
+    headers[name] ||
+    headers[name.toLowerCase()] ||
+    headers[name.toUpperCase()];
+
+  if (Array.isArray(value)) return value[0] || '';
+  return typeof value === 'string' ? value : '';
+}
+
+function getGatewayCredential(req: any): string | null {
+  return (
+    process.env.AI_GATEWAY_API_KEY ||
+    readHeader(req, 'x-vercel-oidc-token') ||
+    process.env.VERCEL_OIDC_TOKEN ||
+    null
+  );
+}
+
+function getDirectGeminiKey(): string | null {
+  return (
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    null
+  );
+}
+
+async function generateViaDirectGemini(
+  model: string,
+  options: GenerateOptions,
+  apiKey: string
+): Promise<string> {
+  const parts: any[] = [];
+
+  if (options.systemInstruction) {
+    parts.push({
+      text: `SYSTEM INSTRUCTION:\n${options.systemInstruction}\n\n`,
+    });
   }
 
-  try {
-    const token = await getVercelOidcToken();
-    return token || process.env.VERCEL_OIDC_TOKEN || null;
-  } catch {
-    return process.env.VERCEL_OIDC_TOKEN || null;
+  parts.push({ text: promptFromContents(options.contents) });
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      model
+    )}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: options.temperature ?? 0.55,
+          responseMimeType:
+            options.responseMimeType === 'application/json'
+              ? 'application/json'
+              : undefined,
+        },
+      }),
+    }
+  );
+
+  const raw = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Direct Gemini ${response.status}: ${raw.slice(0, 500)}`
+    );
   }
+
+  let payload: any;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    throw new Error('Direct Gemini returned invalid JSON.');
+  }
+
+  const text = payload?.candidates?.[0]?.content?.parts
+    ?.map((part: any) => part?.text || '')
+    .join('')
+    .trim();
+
+  if (!text) {
+    throw new Error('Direct Gemini returned no text.');
+  }
+
+  return text;
 }
 
 async function generateViaGateway(
@@ -79,24 +138,29 @@ async function generateViaGateway(
     content: promptFromContents(options.contents),
   });
 
-  const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${credential}`,
-      'Content-Type': 'application/json',
-      'x-vercel-ai-gateway-source': 'deutschstart',
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options.temperature ?? 0.55,
-      max_tokens: 1600,
-      response_format:
-        options.responseMimeType === 'application/json'
-          ? { type: 'json_object' }
-          : undefined,
-    }),
-  });
+  const body: any = {
+    model,
+    messages,
+    temperature: options.temperature ?? 0.55,
+    max_tokens: 1600,
+  };
+
+  if (options.responseMimeType === 'application/json') {
+    body.response_format = { type: 'json_object' };
+  }
+
+  const response = await fetch(
+    'https://ai-gateway.vercel.sh/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${credential}`,
+        'Content-Type': 'application/json',
+        'x-vercel-ai-gateway-source': 'deutschstart',
+      },
+      body: JSON.stringify(body),
+    }
+  );
 
   const raw = await response.text();
 
@@ -123,37 +187,20 @@ async function generateViaGateway(
 }
 
 export async function generateWithModelFallback(
+  req: any,
   options: GenerateOptions
 ): Promise<string> {
   let lastError: any = null;
-  const direct = getDirectGeminiClient();
+  const directKey = getDirectGeminiKey();
 
-  if (direct) {
+  if (directKey) {
     for (const model of DIRECT_GEMINI_MODELS) {
       try {
-        const config: any = {};
-
-        if (options.systemInstruction) {
-          config.systemInstruction = options.systemInstruction;
-        }
-        if (options.responseMimeType) {
-          config.responseMimeType = options.responseMimeType;
-        }
-        if (options.temperature !== undefined) {
-          config.temperature = options.temperature;
-        }
-
-        const response = await direct.models.generateContent({
-          model,
-          contents: options.contents,
-          config,
-        });
-
-        if (response.text) return response.text;
+        return await generateViaDirectGemini(model, options, directKey);
       } catch (error: any) {
         lastError = error;
         console.warn(
-          '[Direct Gemini] model unavailable:',
+          '[Direct Gemini]',
           model,
           String(error?.message || '').slice(0, 220)
         );
@@ -161,11 +208,11 @@ export async function generateWithModelFallback(
     }
   }
 
-  const gatewayCredential = await getGatewayCredential();
+  const gatewayCredential = getGatewayCredential(req);
 
   if (!gatewayCredential) {
     throw new Error(
-      'NO_AI_CREDENTIAL: AI Gateway chưa có API key và project chưa cấp OIDC token.'
+      'NO_AI_CREDENTIAL: Không có GEMINI_API_KEY, AI_GATEWAY_API_KEY hoặc x-vercel-oidc-token.'
     );
   }
 
@@ -175,7 +222,7 @@ export async function generateWithModelFallback(
     } catch (error: any) {
       lastError = error;
       console.warn(
-        '[Vercel AI Gateway] model unavailable:',
+        '[Vercel AI Gateway]',
         model,
         String(error?.message || '').slice(0, 220)
       );
@@ -208,14 +255,13 @@ export function sendAIUnavailable(res: any, error: any) {
     return res.status(429).json({
       error: 'AI_QUOTA',
       message:
-        'AI Gateway/Gemini đang bị giới hạn quota hoặc ngân sách. Kiểm tra AI Gateway budget rồi thử lại.',
-      detail: raw.slice(0, 300),
+        'AI đang bị giới hạn quota hoặc ngân sách. Kiểm tra quota rồi thử lại.',
+      detail: raw.slice(0, 400),
     });
   }
 
   if (
     raw.includes('NO_AI_CREDENTIAL') ||
-    lower.includes('oidc') ||
     lower.includes('unauthorized') ||
     raw.includes('401') ||
     raw.includes('403')
@@ -223,15 +269,14 @@ export function sendAIUnavailable(res: any, error: any) {
     return res.status(503).json({
       error: 'AI_AUTH',
       message:
-        'AI chưa xác thực được với Vercel. Project cần bật Secure Backend Access with OIDC hoặc thêm AI_GATEWAY_API_KEY.',
-      detail: raw.slice(0, 300),
+        'AI chưa có thông tin xác thực hợp lệ trên deployment này.',
+      detail: raw.slice(0, 400),
     });
   }
 
   return res.status(503).json({
     error: 'AI_UNAVAILABLE',
-    message:
-      'AI backend đang lỗi ở runtime. Mở phần chi tiết lỗi để kiểm tra nguyên nhân.',
-    detail: raw.slice(0, 300),
+    message: 'AI backend lỗi khi gọi model.',
+    detail: raw.slice(0, 400),
   });
 }
