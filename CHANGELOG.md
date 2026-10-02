@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.0 — 2026-10-02
+- Sửa lỗi Vercel FUNCTION_INVOCATION_FAILED ở các API AI bằng cách bỏ hoàn toàn import runtime từ @vercel/oidc trong Serverless Functions.
+- Đọc OIDC token trực tiếp từ request header x-vercel-oidc-token đúng theo cách Vercel Functions cung cấp token.
+- AI backend giờ chỉ dùng fetch chuẩn để gọi Gemini REST hoặc Vercel AI Gateway, giảm tối đa khả năng function crash trước khi vào handler.
+- /api/health không còn phụ thuộc package ngoài và hiển thị rõ token/key nào đang sẵn sàng: direct Gemini key, AI Gateway key, OIDC header hoặc OIDC env.
+- Tất cả endpoint AI truyền request context vào provider fallback để Gateway có thể dùng đúng OIDC token của request hiện tại.
+- Frontend vẫn giữ chi tiết HTTP/backend error thay vì nuốt thành thông báo chung.
+- Version hiển thị và service worker cache tăng lên v0.3.0.
+
 ## v0.2.9 — 2026-10-02
 - Đổi Vercel AI Gateway sang xác thực OIDC rõ ràng bằng @vercel/oidc thay vì phụ thuộc AI SDK tự lấy token.
 - Mỗi request lấy OIDC token mới bằng getVercelOidcToken(), tránh dùng token cũ hoặc thiếu token trong runtime.
