@@ -1,9 +1,16 @@
 import { GoogleGenAI } from '@google/genai';
+import { generateText } from 'ai';
 
-export const GEMINI_MODELS = [
+export const DIRECT_GEMINI_MODELS = [
   'gemini-3.8-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
+];
+
+export const GATEWAY_MODELS = [
+  'google/gemini-3.8-flash',
+  'google/gemini-3.5-flash-lite',
+  'google/gemini-3.1-flash-lite',
 ];
 
 export interface GenerateOptions {
@@ -13,7 +20,7 @@ export interface GenerateOptions {
   temperature?: number;
 }
 
-export function getGeminiClient(): GoogleGenAI | null {
+function getGeminiClient(): GoogleGenAI | null {
   const apiKey =
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_API_KEY ||
@@ -31,73 +38,115 @@ export function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
+function promptFromContents(contents: any): string {
+  if (typeof contents === 'string') return contents;
+  try {
+    return JSON.stringify(contents);
+  } catch {
+    return String(contents ?? '');
+  }
+}
+
 export async function generateWithModelFallback(
-  ai: GoogleGenAI,
   options: GenerateOptions
 ): Promise<string> {
   let lastError: any = null;
+  const direct = getGeminiClient();
 
-  for (const model of GEMINI_MODELS) {
+  if (direct) {
+    for (const model of DIRECT_GEMINI_MODELS) {
+      try {
+        const config: any = {};
+
+        if (options.systemInstruction) {
+          config.systemInstruction = options.systemInstruction;
+        }
+        if (options.responseMimeType) {
+          config.responseMimeType = options.responseMimeType;
+        }
+        if (options.temperature !== undefined) {
+          config.temperature = options.temperature;
+        }
+
+        const response = await direct.models.generateContent({
+          model,
+          contents: options.contents,
+          config,
+        });
+
+        if (response.text) return response.text;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(
+          '[Direct Gemini] model unavailable:',
+          model,
+          String(error?.message || '').slice(0, 180)
+        );
+      }
+    }
+  }
+
+  for (const model of GATEWAY_MODELS) {
     try {
-      const config: any = {};
-
-      if (options.systemInstruction) {
-        config.systemInstruction = options.systemInstruction;
-      }
-      if (options.responseMimeType) {
-        config.responseMimeType = options.responseMimeType;
-      }
-      if (options.temperature !== undefined) {
-        config.temperature = options.temperature;
-      }
-
-      const response = await ai.models.generateContent({
+      const result = await generateText({
         model,
-        contents: options.contents,
-        config,
+        system: options.systemInstruction,
+        prompt: promptFromContents(options.contents),
+        temperature: options.temperature,
+        maxOutputTokens: 1600,
       });
 
-      if (response.text) return response.text;
+      if (result.text) return result.text;
     } catch (error: any) {
       lastError = error;
       console.warn(
-        '[Gemini API] model unavailable:',
+        '[Vercel AI Gateway] model unavailable:',
         model,
-        String(error?.message || '').slice(0, 160)
+        String(error?.message || '').slice(0, 180)
       );
     }
   }
 
-  throw lastError || new Error('No Gemini model returned a response.');
+  throw lastError || new Error('All AI providers are unavailable.');
 }
 
-export function requireGemini(res: any): GoogleGenAI | null {
-  const ai = getGeminiClient();
+export function parseJsonText<T = any>(text: string): T {
+  const trimmed = String(text || '').trim();
+  const withoutFence = trimmed
+    .replace(/^\`\`\`(?:json)?\s*/i, '')
+    .replace(/\s*\`\`\`$/i, '');
 
-  if (!ai) {
-    res.status(503).json({
-      error: 'AI_KEY_MISSING',
-      message:
-        'AI chưa được cấu hình trên Vercel. Cần thêm GEMINI_API_KEY vào Environment Variables rồi redeploy.',
-    });
-    return null;
-  }
-
-  return ai;
+  return JSON.parse(withoutFence);
 }
 
 export function sendAIUnavailable(res: any, error: any) {
   const raw = String(error?.message || '');
-  console.error('[Gemini API]', raw);
+  console.error('[AI backend]', raw);
 
-  const status =
-    raw.includes('429') || raw.toLowerCase().includes('quota') ? 429 : 503;
+  const lower = raw.toLowerCase();
+  const isQuota = raw.includes('429') || lower.includes('quota');
+  const isGatewayAuth =
+    lower.includes('oidc') ||
+    lower.includes('unauthorized') ||
+    lower.includes('authentication');
 
-  return res.status(status).json({
-    error: status === 429 ? 'AI_QUOTA' : 'AI_UNAVAILABLE',
-    message:
-      status === 429
-        ? 'Gemini API đang hết quota hoặc bị giới hạn tạm thời.'
-        : 'Gemini API chưa phản hồi được. Hãy thử lại sau.',
+  if (isQuota) {
+    return res.status(429).json({
+      error: 'AI_QUOTA',
+      message: 'AI đang bị giới hạn quota tạm thời. Hãy thử lại sau ít phút.',
+    });
+  }
+
+  if (isGatewayAuth) {
+    return res.status(503).json({
+      error: 'AI_GATEWAY_AUTH',
+      message:
+        'Vercel AI Gateway chưa xác thực được deployment này. Cần bật OIDC/Gateway cho project rồi redeploy.',
+    });
+  }
+
+  return res.status(503).json({
+    error: 'AI_UNAVAILABLE',
+    message: 'AI backend chưa phản hồi được. Hãy thử lại sau.',
   });
 }
