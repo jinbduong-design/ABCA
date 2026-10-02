@@ -38,7 +38,7 @@ Học viên: ${message}
 
 Trả lời ngắn gọn, hữu ích và phù hợp người mới.`;
 
-    const reply = await generateWithModelFallback({
+    const reply = await generateWithModelFallback(req, {
       contents: conversationPrompt,
       systemInstruction,
       temperature: 0.65,

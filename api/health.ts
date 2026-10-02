@@ -1,6 +1,4 @@
-import { getVercelOidcToken } from '@vercel/oidc';
-
-export default async function handler(_req: any, res: any) {
+export default async function handler(req: any, res: any) {
   const hasDirectGeminiKey = Boolean(
     process.env.GEMINI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -8,16 +6,15 @@ export default async function handler(_req: any, res: any) {
   );
   const hasGatewayKey = Boolean(process.env.AI_GATEWAY_API_KEY);
 
-  let hasOidcToken = false;
-  let oidcError = '';
+  const headerTokenRaw =
+    req?.headers?.['x-vercel-oidc-token'] ||
+    req?.headers?.['X-Vercel-Oidc-Token'];
+  const headerToken = Array.isArray(headerTokenRaw)
+    ? headerTokenRaw[0]
+    : headerTokenRaw;
 
-  try {
-    const token = await getVercelOidcToken();
-    hasOidcToken = Boolean(token || process.env.VERCEL_OIDC_TOKEN);
-  } catch (error: any) {
-    hasOidcToken = Boolean(process.env.VERCEL_OIDC_TOKEN);
-    oidcError = String(error?.message || '').slice(0, 180);
-  }
+  const hasOidcHeader = Boolean(headerToken);
+  const hasOidcEnv = Boolean(process.env.VERCEL_OIDC_TOKEN);
 
   res.status(200).json({
     status: 'ok',
@@ -25,16 +22,22 @@ export default async function handler(_req: any, res: any) {
     vercelRuntime: process.env.VERCEL === '1',
     hasDirectGeminiKey,
     hasGatewayKey,
-    hasOidcToken,
-    aiReady: hasDirectGeminiKey || hasGatewayKey || hasOidcToken,
+    hasOidcHeader,
+    hasOidcEnv,
+    aiReady:
+      hasDirectGeminiKey ||
+      hasGatewayKey ||
+      hasOidcHeader ||
+      hasOidcEnv,
     aiStrategy: hasDirectGeminiKey
       ? 'direct-gemini-then-gateway'
       : hasGatewayKey
       ? 'gateway-api-key'
-      : hasOidcToken
-      ? 'gateway-oidc'
+      : hasOidcHeader
+      ? 'gateway-oidc-header'
+      : hasOidcEnv
+      ? 'gateway-oidc-env'
       : 'missing-auth',
-    oidcError: oidcError || undefined,
     timestamp: new Date().toISOString(),
   });
 }

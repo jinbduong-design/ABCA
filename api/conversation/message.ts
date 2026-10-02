@@ -100,7 +100,7 @@ Return JSON only:
   }
 }`;
 
-    const text = await generateWithModelFallback({
+    const text = await generateWithModelFallback(req, {
       contents: prompt,
       responseMimeType: 'application/json',
       temperature: 0.55,
