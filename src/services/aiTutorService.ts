@@ -55,14 +55,25 @@ async function requestAI<T>(url: string, body: unknown): Promise<T> {
   });
 
   if (!res.ok) {
-    let message = 'AI đang tạm thời không khả dụng. Hãy thử lại sau.';
+    const raw = await res.text();
+    let message = '';
+
     try {
-      const payload = await res.json();
-      if (payload?.message) message = payload.message;
+      const payload = JSON.parse(raw);
+      message = payload?.message || '';
+      if (payload?.detail) {
+        message += `\nChi tiết: ${payload.detail}`;
+      }
     } catch {
-      // Keep the clear default message when the server did not return JSON.
+      const compact = raw.replace(/\s+/g, ' ').trim().slice(0, 180);
+      message = compact
+        ? `API AI lỗi HTTP ${res.status}: ${compact}`
+        : `API AI lỗi HTTP ${res.status} và không trả dữ liệu.`;
     }
-    throw new Error(message);
+
+    throw new Error(
+      message || `API AI lỗi HTTP ${res.status}. Hãy thử lại sau.`
+    );
   }
 
   return await res.json();

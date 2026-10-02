@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.9 — 2026-10-02
+- Đổi Vercel AI Gateway sang xác thực OIDC rõ ràng bằng @vercel/oidc thay vì phụ thuộc AI SDK tự lấy token.
+- Mỗi request lấy OIDC token mới bằng getVercelOidcToken(), tránh dùng token cũ hoặc thiếu token trong runtime.
+- Nếu có AI_GATEWAY_API_KEY thì ưu tiên key; nếu không có thì dùng OIDC; nếu có GEMINI_API_KEY thì vẫn thử Gemini trực tiếp trước.
+- Backend gọi thẳng OpenAI-compatible endpoint của Vercel AI Gateway để giảm lỗi runtime từ lớp SDK trung gian.
+- /api/health giờ kiểm tra trực tiếp direct Gemini key, Gateway key và OIDC token, đồng thời trả aiReady + aiStrategy.
+- Frontend không còn nuốt lỗi thành “AI tạm thời không khả dụng”; nếu API trả 401/403/500/404 sẽ hiện đúng HTTP status và chi tiết backend trả về.
+- Bỏ package ai khỏi runtime backend, thay bằng @vercel/oidc để giảm phụ thuộc và làm đường gọi production dễ kiểm tra hơn.
+- Version hiển thị và service worker cache tăng lên v0.2.9.
+
 ## v0.2.8 — 2026-10-02
 - Sửa AI production theo hướng không còn phụ thuộc bắt buộc vào GEMINI_API_KEY trên Vercel.
 - Backend thử Gemini trực tiếp trước nếu có key; nếu không có hoặc provider lỗi thì tự fallback sang Vercel AI Gateway.
