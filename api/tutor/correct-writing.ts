@@ -1,6 +1,6 @@
 import {
   generateWithModelFallback,
-  requireGemini,
+  parseJsonText,
   sendAIUnavailable,
 } from '../_lib/gemini';
 
@@ -13,9 +13,6 @@ export default async function handler(req: any, res: any) {
   if (!userText || !String(userText).trim()) {
     return res.status(400).json({ error: 'Vui lòng nhập bài viết tiếng Đức' });
   }
-
-  const ai = requireGemini(res);
-  if (!ai) return;
 
   try {
     const prompt = `Bạn là giáo viên tiếng Đức chấm bài viết trình độ ${level}.
@@ -49,13 +46,13 @@ Trả về JSON:
   "keyTips": ["mẹo quan trọng"]
 }`;
 
-    const text = await generateWithModelFallback(ai, {
+    const text = await generateWithModelFallback({
       contents: prompt,
       responseMimeType: 'application/json',
       temperature: 0.25,
     });
 
-    return res.status(200).json(JSON.parse(text || '{}'));
+    return res.status(200).json(parseJsonText(text));
   } catch (error) {
     return sendAIUnavailable(res, error);
   }

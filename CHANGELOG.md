@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.8 — 2026-10-02
+- Sửa AI production theo hướng không còn phụ thuộc bắt buộc vào GEMINI_API_KEY trên Vercel.
+- Backend thử Gemini trực tiếp trước nếu có key; nếu không có hoặc provider lỗi thì tự fallback sang Vercel AI Gateway.
+- Vercel AI Gateway dùng OIDC của deployment trong production, tránh hardcode secret vào source.
+- Gateway fallback theo thứ tự google/gemini-3.8-flash → google/gemini-3.5-flash-lite → google/gemini-3.1-flash-lite.
+- Cả AI Tutor, Hội thoại, phân tích câu và chấm bài viết đều dùng chung provider fallback mới.
+- JSON response được parse an toàn hơn khi model trả về code fence.
+- /api/health giờ cho biết app đang dùng direct Gemini hay Vercel AI Gateway.
+- Lỗi quota và lỗi xác thực Gateway được tách riêng để UI không còn chỉ hiện một thông báo chung chung.
+- Version hiển thị và service worker cache tăng lên v0.2.8.
+
 ## v0.2.7 — 2026-09-30
 - Bỏ khung chat kiểu popup/card trong Hội thoại; phiên đang luyện giờ nằm trực tiếp trong màn hình app và dùng toàn bộ vùng nội dung.
 - Tin nhắn tiếng Đức hiển thị English translation ngay bên dưới; tiếng Việt mặc định ẩn và chỉ mở bằng “Không hiểu? Xem tiếng Việt”.
