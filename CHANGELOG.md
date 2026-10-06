@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.1 — 2026-10-06
+- Chuyển hướng học chính sang Daily Data Lesson: mỗi ngày là một file JSON độc lập, app chỉ đóng vai trò engine hiển thị.
+- Thêm Day 1 tại public/daily-lessons/day001.json: “Chào và nói tên”, 12 phút, chỉ 3 cụm mới.
+- Day 1 dùng German trước, English ngay dưới, tiếng Việt ẩn mặc định và chỉ mở khi người học cần.
+- Thêm progressive hints: người học phải tự nhớ trước; khi bí mới lộ từng phần của câu, không xổ đáp án ngay.
+- Thêm flow dữ liệu gồm tình huống → nghe → bắt chước → cá nhân hóa tên → hội thoại có hướng dẫn → retrieval → tình huống thật → hoàn thành.
+- Không dùng điểm số hoặc mastery gate cho Day 1; chỉ lưu số lần cần trợ giúp để làm dữ kiện cá nhân hóa các ngày sau.
+- Thêm DailyDataLessonPlayer dùng chung. Các Day sau có thể dùng cùng engine mà không cần viết lesson content trong code.
+- Thêm dailyLessonService: tự tìm Day chưa hoàn thành tiếp theo; nếu file Day tiếp theo chưa có thì giữ bài gần nhất để ôn.
+- Home được rút lại quanh đúng bài dữ liệu hôm nay; lộ trình cũ vẫn giữ làm mục tham khảo.
+- Dữ liệu tiến độ Daily Lesson nằm trong deutschstart_daily_lessons_v1 nên đi cùng cơ chế backup/cloud hiện có.
+- Version hiển thị và service worker cache tăng lên v0.3.1.
+
 ## v0.3.0 — 2026-10-02
 - Sửa lỗi Vercel FUNCTION_INVOCATION_FAILED ở các API AI bằng cách bỏ hoàn toàn import runtime từ @vercel/oidc trong Serverless Functions.
 - Đọc OIDC token trực tiếp từ request header x-vercel-oidc-token đúng theo cách Vercel Functions cung cấp token.

@@ -10,6 +10,7 @@ import { AITutorView } from './components/AITutorView';
 import { MistakesView } from './components/MistakesView';
 import { ProgressView } from './components/ProgressView';
 import { LessonPlayer } from './components/LessonPlayer';
+import { DailyDataLessonPlayer } from './components/DailyDataLessonPlayer';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { NotesModal } from './components/NotesModal';
 import { DailyStudySessionModal } from './components/DailyStudySessionModal';
@@ -17,6 +18,7 @@ import { storageService } from './services/storageService';
 import { personalCloudSyncService } from './services/personalCloudSyncService';
 import { COURSES_DATA } from './data/coursesData';
 import { UserProgress, Lesson } from './types';
+import { DailyLessonData } from './services/dailyLessonService';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<
@@ -25,6 +27,7 @@ export default function App() {
 
   const [progress, setProgress] = useState<UserProgress>(() => storageService.getProgress());
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+  const [activeDailyLesson, setActiveDailyLesson] = useState<DailyLessonData | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [notesTarget, setNotesTarget] = useState<{ id?: string; title?: string }>({});
@@ -71,7 +74,10 @@ export default function App() {
       if (found) break;
     }
 
-    if (found) setActiveLesson(found);
+    if (found) {
+      setActiveDailyLesson(null);
+      setActiveLesson(found);
+    }
   };
 
   const handleFinishLesson = (_lessonId: string, _score: number) => {
@@ -87,6 +93,8 @@ export default function App() {
   const handleResetProgress = () => {
     storageService.resetAll();
     refreshProgress();
+    setActiveLesson(null);
+    setActiveDailyLesson(null);
     setCurrentView('home');
   };
 
@@ -106,6 +114,10 @@ export default function App() {
           <DailyDashboard
             progress={progress}
             onStartLesson={handleStartLesson}
+            onStartDailyLesson={(lesson) => {
+              setActiveLesson(null);
+              setActiveDailyLesson(lesson);
+            }}
             onNavigate={setCurrentView}
             onOpenDailySession={() => setIsDailySessionOpen(true)}
           />
@@ -131,6 +143,17 @@ export default function App() {
         onNavigate={setCurrentView}
         mistakesCount={mistakesCount}
       />
+
+      {activeDailyLesson && (
+        <DailyDataLessonPlayer
+          lesson={activeDailyLesson}
+          onClose={() => setActiveDailyLesson(null)}
+          onCompleted={() => {
+            setActiveDailyLesson(null);
+            refreshProgress();
+          }}
+        />
+      )}
 
       {activeLesson && (
         <LessonPlayer

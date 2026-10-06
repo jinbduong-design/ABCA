@@ -1,0 +1,248 @@
+{
+  "schema_version": "1.0",
+  "lesson_id": "de_day_001",
+  "day": 1,
+  "published_date": "2026-10-06",
+  "title": "Chào và nói tên",
+  "learner_profile": {
+    "level": "A0_absolute_beginner",
+    "assumption": "Người học gần như chưa biết tiếng Đức.",
+    "session_minutes": 12,
+    "max_new_chunks": 3,
+    "primary_translation": "en",
+    "secondary_translation": "vi_on_demand",
+    "show_scores": false,
+    "show_grammar_terms": false
+  },
+  "outcome": {
+    "can_do": "Có thể chào, nói tên của mình và hỏi tên người đối diện trong một cuộc gặp rất ngắn.",
+    "real_world_scene": "Gặp một người cùng lớp lần đầu."
+  },
+  "ui_rules": {
+    "one_action_per_screen": true,
+    "german_first": true,
+    "english_always_below": true,
+    "vietnamese_hidden_by_default": true,
+    "vietnamese_button_label": "Không hiểu? Xem tiếng Việt",
+    "no_percentage_score": true,
+    "help_is_progressive": true
+  },
+  "core_chunks": [
+    {
+      "id": "d1_c1",
+      "german": "Hallo!",
+      "english": "Hi!",
+      "vietnamese": "Xin chào!",
+      "audio_speed": 0.82,
+      "pronunciation_note_vi": "Nghe và bắt chước cả âm thanh. Chưa cần học quy tắc."
+    },
+    {
+      "id": "d1_c2",
+      "german": "Ich heiße {name}.",
+      "english": "My name is {name}.",
+      "vietnamese": "Tôi tên là {name}.",
+      "audio_speed": 0.78,
+      "pronunciation_note_vi": "Học cả cụm như một câu dùng được ngay."
+    },
+    {
+      "id": "d1_c3",
+      "german": "Wie heißt du?",
+      "english": "What's your name?",
+      "vietnamese": "Bạn tên là gì?",
+      "audio_speed": 0.78,
+      "pronunciation_note_vi": "Nghe nhịp câu hỏi trước, chưa cần phân tích ngữ pháp."
+    }
+  ],
+  "flow": [
+    {
+      "step": 1,
+      "type": "scene",
+      "title": "Tình huống",
+      "content": {
+        "vi": "Mày gặp một người cùng lớp lần đầu. Chỉ cần chào và nói tên."
+      }
+    },
+    {
+      "step": 2,
+      "type": "listen_and_understand",
+      "target_id": "d1_c1",
+      "instruction_vi": "Nghe trước. Chưa cần nói."
+    },
+    {
+      "step": 3,
+      "type": "imitate",
+      "target_id": "d1_c1",
+      "instruction_vi": "Nói theo 2 lần."
+    },
+    {
+      "step": 4,
+      "type": "listen_and_understand",
+      "target_id": "d1_c2",
+      "instruction_vi": "Nghe cả câu. Chưa cần nhớ từng từ."
+    },
+    {
+      "step": 5,
+      "type": "personalize",
+      "target_id": "d1_c2",
+      "instruction_vi": "Thay {name} bằng tên của mày.",
+      "template": "Ich heiße {name}.",
+      "help_levels": [
+        "Ich ...",
+        "Ich heiße ...",
+        "Ich heiße {name}."
+      ]
+    },
+    {
+      "step": 6,
+      "type": "listen_and_understand",
+      "target_id": "d1_c3",
+      "instruction_vi": "Nghe câu hỏi. Chỉ cần hiểu người kia đang hỏi tên."
+    },
+    {
+      "step": 7,
+      "type": "micro_dialogue_guided",
+      "dialogue": [
+        {
+          "speaker": "partner",
+          "german": "Hallo!",
+          "english": "Hi!",
+          "vietnamese": "Xin chào!"
+        },
+        {
+          "speaker": "learner",
+          "expected": "Hallo!",
+          "help_levels": [
+            "Ha...",
+            "Hallo!"
+          ]
+        },
+        {
+          "speaker": "partner",
+          "german": "Wie heißt du?",
+          "english": "What's your name?",
+          "vietnamese": "Bạn tên là gì?"
+        },
+        {
+          "speaker": "learner",
+          "expected_pattern": "Ich heiße {name}.",
+          "help_levels": [
+            "Ich ...",
+            "Ich heiße ...",
+            "Ich heiße {name}."
+          ]
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "type": "retrieval",
+      "instruction_vi": "Bỏ mẫu đi. Tự nhớ trước khi xem gợi ý.",
+      "prompts": [
+        {
+          "prompt_en": "Hi!",
+          "expected": "Hallo!",
+          "help_levels": [
+            "Ha...",
+            "Hallo!"
+          ]
+        },
+        {
+          "prompt_en": "My name is {name}.",
+          "expected": "Ich heiße {name}.",
+          "help_levels": [
+            "Ich ...",
+            "Ich heiße ...",
+            "Ich heiße {name}."
+          ]
+        },
+        {
+          "prompt_en": "What's your name?",
+          "expected": "Wie heißt du?",
+          "help_levels": [
+            "Wie ...",
+            "Wie heißt ...",
+            "Wie heißt du?"
+          ]
+        }
+      ],
+      "scoring": "none"
+    },
+    {
+      "step": 9,
+      "type": "mini_real_scene",
+      "title": "Nói thật một lượt",
+      "partner_opening": {
+        "german": "Hallo! Wie heißt du?",
+        "english": "Hi! What's your name?"
+      },
+      "learner_goal": "Tự trả lời bằng tên của mình, sau đó hỏi lại tên người đối diện.",
+      "minimum_success": [
+        "Ich heiße {name}.",
+        "Wie heißt du?"
+      ],
+      "help_policy": "Chỉ hiện gợi ý nếu người học bấm."
+    },
+    {
+      "step": 10,
+      "type": "finish",
+      "title": "Hôm nay mày làm được",
+      "can_do_items": [
+        "Chào một người",
+        "Nói tên của mình",
+        "Hỏi tên người khác"
+      ],
+      "message_vi": "Không cần nhớ hoàn hảo. Ngày mai app sẽ kéo lại đúng những câu mày còn chậm."
+    }
+  ],
+  "adaptive_rules": {
+    "if_help_level_0": "Ôn lại sau 24 giờ.",
+    "if_help_level_1_or_2": "Ôn lại cuối buổi và ngày hôm sau.",
+    "if_help_level_3": "Nghe lại 1 lần, nói theo 1 lần rồi retrieval lại.",
+    "never_fail_lesson": true,
+    "do_not_unlock_extra_theory": true
+  },
+  "review_schedule": [
+    {
+      "when": "end_of_day_1",
+      "items": [
+        "d1_c2",
+        "d1_c3"
+      ],
+      "mode": "retrieval_only",
+      "max_minutes": 2
+    },
+    {
+      "when": "day_2_start",
+      "items": [
+        "d1_c1",
+        "d1_c2",
+        "d1_c3"
+      ],
+      "mode": "quick_recall",
+      "max_minutes": 2
+    },
+    {
+      "when": "day_4",
+      "items": [
+        "d1_c2",
+        "d1_c3"
+      ],
+      "mode": "new_context",
+      "max_minutes": 2
+    }
+  ],
+  "completion_rule": {
+    "required": "Hoàn thành lượt hội thoại cuối.",
+    "no_score_gate": true,
+    "success_label": "Tao có thể chào và nói tên."
+  },
+  "next_day_seed": {
+    "day": 2,
+    "topic": "Hỏi thăm cực cơ bản",
+    "new_chunks_preview": [
+      "Wie geht's?",
+      "Gut, danke.",
+      "Und dir?"
+    ]
+  }
+}
